@@ -36,9 +36,9 @@ class AccountCreditTest {
         CreditAccount creditAccount = new CreditAccount(accountId, creditAmount);
 
         // Act
-        List<AccountEvent> openingEvents = Account.handle(openAccount);
+        List<AccountEvent> openingEvents = Account.handle(openAccount, Instant.now());
         Account account = Account.rehydrate(openingEvents);
-        List<AccountEvent> creditEvents = account.handle(creditAccount);
+        List<AccountEvent> creditEvents = account.handle(creditAccount, Instant.now());
         List<AccountEvent> allEvents = Stream.concat(openingEvents.stream(), creditEvents.stream()).toList();
         Account accountAfterCredit = Account.rehydrate(allEvents);
 
@@ -73,8 +73,9 @@ class AccountCreditTest {
         CreditAccount creditAccount = new CreditAccount(accountId, creditAmount);
 
         // Act ... Assert
+        Instant occurredAt = Instant.now();
         assertThatExceptionOfType(IllegalArgumentException.class)
-                .isThrownBy(() -> account.handle(creditAccount));
+                .isThrownBy(() -> account.handle(creditAccount, occurredAt));
     }
 
     @Test
@@ -96,8 +97,9 @@ class AccountCreditTest {
         CreditAccount creditAccount = new CreditAccount(otherAccountId, creditAmount);
 
         // Act ... Assert
+        Instant occurredAt = Instant.now();
         assertThatExceptionOfType(IllegalArgumentException.class)
-                .isThrownBy(() -> account.handle(creditAccount));
+                .isThrownBy(() -> account.handle(creditAccount, occurredAt));
     }
 
     @Test
@@ -118,8 +120,9 @@ class AccountCreditTest {
         CreditAccount creditAccount = new CreditAccount(accountId, creditAmount);
 
         // Act ... Assert
+        Instant occurredAt = Instant.now();
         assertThatExceptionOfType(IllegalArgumentException.class)
-                .isThrownBy(() -> account.handle(creditAccount));
+                .isThrownBy(() -> account.handle(creditAccount, occurredAt));
     }
 
     @Test
@@ -151,7 +154,8 @@ class AccountCreditTest {
         CreditAccount creditAccount = new CreditAccount(accountId, creditAmount);
 
         // Act + Assert
+        Instant occurredAt = Instant.now();
         assertThatExceptionOfType(IllegalStateException.class)
-                .isThrownBy(() -> closedAccount.handle(creditAccount));
+                .isThrownBy(() -> closedAccount.handle(creditAccount, occurredAt));
     }
 }

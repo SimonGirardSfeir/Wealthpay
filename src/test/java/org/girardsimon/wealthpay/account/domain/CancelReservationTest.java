@@ -52,7 +52,7 @@ class CancelReservationTest {
         CancelReservation cancelReservation = new CancelReservation(accountId, reservationId);
 
         // Act
-        List<AccountEvent> cancellationEvents = account.handle(cancelReservation);
+        List<AccountEvent> cancellationEvents = account.handle(cancelReservation, Instant.now());
         List<AccountEvent> allEvents = Stream.concat(initEvents.stream(), cancellationEvents.stream()).toList();
         Account accountAfterCancellation = Account.rehydrate(allEvents);
 
@@ -96,8 +96,9 @@ class CancelReservationTest {
         CancelReservation cancelReservation = new CancelReservation(accountId, ReservationId.newId());
 
         // Act ... Assert
+        Instant occurredAt = Instant.now();
         assertThatExceptionOfType(IllegalArgumentException.class)
-                .isThrownBy(() -> account.handle(cancelReservation));
+                .isThrownBy(() -> account.handle(cancelReservation, occurredAt));
     }
 
     @Test
@@ -127,8 +128,9 @@ class CancelReservationTest {
         CancelReservation cancelReservation = new CancelReservation(AccountId.newId(), reservationId);
 
         // Act ... Assert
+        Instant occurredAt = Instant.now();
         assertThatExceptionOfType(IllegalArgumentException.class)
-                .isThrownBy(() -> account.handle(cancelReservation));
+                .isThrownBy(() -> account.handle(cancelReservation, occurredAt));
     }
 
     @Test
@@ -162,7 +164,8 @@ class CancelReservationTest {
         CancelReservation cancelReservation = new CancelReservation(accountId, reservationId);
 
         // Act ... Assert
+        Instant occurredAt = Instant.now();
         assertThatExceptionOfType(IllegalStateException.class)
-                .isThrownBy(() -> closedAccount.handle(cancelReservation));
+                .isThrownBy(() -> closedAccount.handle(cancelReservation, occurredAt));
     }
 }

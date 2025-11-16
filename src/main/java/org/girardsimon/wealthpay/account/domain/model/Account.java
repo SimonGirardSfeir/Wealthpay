@@ -33,7 +33,7 @@ public class Account {
         this.currency = currency;
     }
 
-    public static List<AccountEvent> handle(OpenAccount openAccount) {
+    public static List<AccountEvent> handle(OpenAccount openAccount, Instant occurredAt) {
         if(openAccount.accountId() == null) {
             throw new IllegalArgumentException("Account id must not be null");
         }
@@ -46,7 +46,7 @@ public class Account {
         }
         AccountOpened accountOpened = new AccountOpened(
                 openAccount.accountId(),
-                Instant.now(),
+                occurredAt,
                 1L,
                 openAccount.currency(),
                 openAccount.initialBalance()
@@ -54,14 +54,14 @@ public class Account {
         return List.of(accountOpened);
     }
 
-    public List<AccountEvent> handle(CreditAccount creditAccount) {
+    public List<AccountEvent> handle(CreditAccount creditAccount, Instant occurredAt) {
         ensureAccountIdConsistency(creditAccount.accountId());
         checkCurrencyConsistency(creditAccount.amount().currency());
         checkStrictlyPositiveAmount(creditAccount.amount());
         ensureActive();
         FundsCredited fundsCredited = new FundsCredited(
                 creditAccount.accountId(),
-                Instant.now(),
+                occurredAt,
                 this.version + 1,
                 creditAccount.amount()
         );
@@ -74,7 +74,7 @@ public class Account {
         }
     }
 
-    public List<AccountEvent> handle(DebitAccount debitAccount) {
+    public List<AccountEvent> handle(DebitAccount debitAccount, Instant occurredAt) {
         ensureAccountIdConsistency(debitAccount.accountId());
         checkCurrencyConsistency(debitAccount.amount().currency());
         checkStrictlyPositiveAmount(debitAccount.amount());
@@ -84,14 +84,14 @@ public class Account {
         }
         FundsDebited fundsDebited = new FundsDebited(
                 debitAccount.accountId(),
-                Instant.now(),
+                occurredAt,
                 this.version + 1,
                 debitAccount.amount()
         );
         return List.of(fundsDebited);
     }
 
-    public List<AccountEvent> handle(ReserveFunds reserveFunds) {
+    public List<AccountEvent> handle(ReserveFunds reserveFunds, Instant occurredAt) {
         if(reserveFunds.amount() == null || reserveFunds.reservationId() == null) {
             throw new IllegalArgumentException("Amount and reservationId must not be null");
         }
@@ -107,7 +107,7 @@ public class Account {
         }
         FundsReserved fundsReserved = new FundsReserved(
                 reserveFunds.accountId(),
-                Instant.now(),
+                occurredAt,
                 this.version + 1,
                 reserveFunds.reservationId(),
                 reserveFunds.amount()
@@ -115,7 +115,7 @@ public class Account {
         return List.of(fundsReserved);
     }
 
-    public List<AccountEvent> handle(CancelReservation cancelReservation) {
+    public List<AccountEvent> handle(CancelReservation cancelReservation, Instant occurredAt) {
         if(cancelReservation.reservationId() == null) {
             throw new IllegalArgumentException("Reservation id must not be null");
         }
@@ -126,14 +126,14 @@ public class Account {
         ensureActive();
         ReservationCancelled reservationCancelled = new ReservationCancelled(
                 cancelReservation.accountId(),
-                Instant.now(),
+                occurredAt,
                 this.version + 1,
                 cancelReservation.reservationId()
         );
         return List.of(reservationCancelled);
     }
 
-    public List<AccountEvent> handle(CloseAccount closeAccount) {
+    public List<AccountEvent> handle(CloseAccount closeAccount, Instant occurredAt) {
         ensureAccountIdConsistency(closeAccount.accountId());
         ensureActive();
         if(!this.balance.isAmountZero()) {
@@ -141,7 +141,7 @@ public class Account {
         }
         AccountClosed accountClosed = new AccountClosed(
                 closeAccount.accountId(),
-                Instant.now(),
+                occurredAt,
                 this.version + 1
         );
         return List.of(accountClosed);

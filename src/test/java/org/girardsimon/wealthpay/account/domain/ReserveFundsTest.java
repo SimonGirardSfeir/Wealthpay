@@ -38,9 +38,9 @@ class ReserveFundsTest {
         ReserveFunds reserveFunds = new ReserveFunds(accountId, reservationId, reservationAmount);
 
         // Act
-        List<AccountEvent> openingEvents = Account.handle(openAccount);
+        List<AccountEvent> openingEvents = Account.handle(openAccount, Instant.now());
         Account account = Account.rehydrate(openingEvents);
-        List<AccountEvent> reserveFundsEvents = account.handle(reserveFunds);
+        List<AccountEvent> reserveFundsEvents = account.handle(reserveFunds, Instant.now());
         List<AccountEvent> allEvents = Stream.concat(openingEvents.stream(), reserveFundsEvents.stream()).toList();
         Account accountAfterReservation = Account.rehydrate(allEvents);
 
@@ -78,8 +78,9 @@ class ReserveFundsTest {
         ReserveFunds reserveFunds = new ReserveFunds(accountId, reservationId, reservedAmount);
 
         // Act ... Assert
+        Instant occurredAt = Instant.now();
         assertThatExceptionOfType(IllegalArgumentException.class)
-                .isThrownBy(() -> account.handle(reserveFunds));
+                .isThrownBy(() -> account.handle(reserveFunds, occurredAt));
     }
 
     @Test
@@ -102,8 +103,9 @@ class ReserveFundsTest {
         ReserveFunds reserveFunds = new ReserveFunds(otherAccountId, reservationId, reservedAmount);
 
         // Act ... Assert
+        Instant occurredAt = Instant.now();
         assertThatExceptionOfType(IllegalArgumentException.class)
-                .isThrownBy(() -> account.handle(reserveFunds));
+                .isThrownBy(() -> account.handle(reserveFunds, occurredAt));
     }
 
     @Test
@@ -125,8 +127,9 @@ class ReserveFundsTest {
         ReserveFunds reserveFunds = new ReserveFunds(accountId, reservationId, reservedAmount);
 
         // Act ... Assert
+        Instant occurredAt = Instant.now();
         assertThatExceptionOfType(IllegalArgumentException.class)
-                .isThrownBy(() -> account.handle(reserveFunds));
+                .isThrownBy(() -> account.handle(reserveFunds, occurredAt));
     }
 
     @Test
@@ -147,8 +150,9 @@ class ReserveFundsTest {
         ReserveFunds reserveFunds = new ReserveFunds(accountId, null, reservedAmount);
 
         // Act ... Assert
+        Instant occurredAt = Instant.now();
         assertThatExceptionOfType(IllegalArgumentException.class)
-                .isThrownBy(() -> account.handle(reserveFunds));
+                .isThrownBy(() -> account.handle(reserveFunds, occurredAt));
     }
 
     @Test
@@ -181,8 +185,9 @@ class ReserveFundsTest {
         ReserveFunds reserveFunds = new ReserveFunds(accountId, reservationId, reservedAmount);
 
         // Act + Assert
+        Instant occurredAt = Instant.now();
         assertThatExceptionOfType(IllegalStateException.class)
-                .isThrownBy(() -> closedAccount.handle(reserveFunds));
+                .isThrownBy(() -> closedAccount.handle(reserveFunds, occurredAt));
     }
 
     @Test
@@ -212,8 +217,9 @@ class ReserveFundsTest {
         ReserveFunds reserveFunds = new ReserveFunds(accountId, reservationId, reservedAmount);
 
         // Act + Assert
+        Instant occurredAt = Instant.now();
         assertThatExceptionOfType(IllegalArgumentException.class)
-                .isThrownBy(() -> account.handle(reserveFunds));
+                .isThrownBy(() -> account.handle(reserveFunds, occurredAt));
     }
 
     @Test
@@ -243,7 +249,8 @@ class ReserveFundsTest {
         ReserveFunds reserveFunds = new ReserveFunds(accountId, reservationId, reservedAmount);
 
         // Act ... Assert
+        Instant occurredAt = Instant.now();
         assertThatExceptionOfType(IllegalArgumentException.class)
-                .isThrownBy(() -> closedAccount.handle(reserveFunds));
+                .isThrownBy(() -> closedAccount.handle(reserveFunds, occurredAt));
     }
 }

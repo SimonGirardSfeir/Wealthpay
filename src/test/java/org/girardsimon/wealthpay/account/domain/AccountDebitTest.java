@@ -35,9 +35,9 @@ class AccountDebitTest {
         DebitAccount debitAccount = new DebitAccount(accountId, debitAmount);
 
         // Act
-        List<AccountEvent> openingEvents = Account.handle(openAccount);
+        List<AccountEvent> openingEvents = Account.handle(openAccount, Instant.now());
         Account account = Account.rehydrate(openingEvents);
-        List<AccountEvent> debitEvents = account.handle(debitAccount);
+        List<AccountEvent> debitEvents = account.handle(debitAccount, Instant.now());
         List<AccountEvent> allEvents = Stream.concat(openingEvents.stream(), debitEvents.stream()).toList();
         Account accountAfterCredit = Account.rehydrate(allEvents);
 
@@ -72,8 +72,9 @@ class AccountDebitTest {
         DebitAccount debitAccount = new DebitAccount(accountId, debitAmount);
 
         // Act ... Assert
+        Instant occurredAt = Instant.now();
         assertThatExceptionOfType(IllegalArgumentException.class)
-                .isThrownBy(() -> account.handle(debitAccount));
+                .isThrownBy(() -> account.handle(debitAccount, occurredAt));
     }
 
     @Test
@@ -95,8 +96,9 @@ class AccountDebitTest {
         DebitAccount debitAccount = new DebitAccount(otherAccountId, debitAmount);
 
         // Act ... Assert
+        Instant occurredAt = Instant.now();
         assertThatExceptionOfType(IllegalArgumentException.class)
-                .isThrownBy(() -> account.handle(debitAccount));
+                .isThrownBy(() -> account.handle(debitAccount, occurredAt));
     }
 
     @Test
@@ -117,8 +119,9 @@ class AccountDebitTest {
         DebitAccount debitAccount = new DebitAccount(accountId, debitAmount);
 
         // Act ... Assert
+        Instant occurredAt = Instant.now();
         assertThatExceptionOfType(IllegalArgumentException.class)
-                .isThrownBy(() -> account.handle(debitAccount));
+                .isThrownBy(() -> account.handle(debitAccount, occurredAt));
     }
 
     @Test
@@ -150,8 +153,9 @@ class AccountDebitTest {
         DebitAccount debitAccount = new DebitAccount(accountId, debitAmount);
 
         // Act ... Assert
+        Instant occurredAt = Instant.now();
         assertThatExceptionOfType(IllegalStateException.class)
-                .isThrownBy(() -> closedAccount.handle(debitAccount));
+                .isThrownBy(() -> closedAccount.handle(debitAccount, occurredAt));
     }
 
     @Test
@@ -172,7 +176,8 @@ class AccountDebitTest {
         DebitAccount debitAccount = new DebitAccount(accountId, debitAmount);
 
         // Act ... Assert
+        Instant occurredAt = Instant.now();
         assertThatExceptionOfType(IllegalArgumentException.class)
-                .isThrownBy(() -> account.handle(debitAccount));
+                .isThrownBy(() -> account.handle(debitAccount, occurredAt));
     }
 }

@@ -47,7 +47,7 @@ class AccountClosingTest {
         CloseAccount closeAccount = new CloseAccount(accountId);
 
         // Act
-        List<AccountEvent> closingEvents = account.handle(closeAccount);
+        List<AccountEvent> closingEvents = account.handle(closeAccount, Instant.now());
         List<AccountEvent> allEvents = Stream.concat(initEvents.stream(), closingEvents.stream()).toList();
         Account accountAfterCredit = Account.rehydrate(allEvents);
 
@@ -86,8 +86,9 @@ class AccountClosingTest {
         CloseAccount closeAccount = new CloseAccount(otherAccountId);
 
         // Act ... Assert
+        Instant occurredAt = Instant.now();
         assertThatExceptionOfType(IllegalArgumentException.class)
-                .isThrownBy(() -> account.handle(closeAccount));
+                .isThrownBy(() -> account.handle(closeAccount, occurredAt));
     }
 
     @Test
@@ -118,7 +119,8 @@ class AccountClosingTest {
         CloseAccount closeAccount = new CloseAccount(accountId);
 
         // Act ... Assert
+        Instant occurredAt = Instant.now();
         assertThatExceptionOfType(IllegalStateException.class)
-                .isThrownBy(() -> closedAccount.handle(closeAccount));
+                .isThrownBy(() -> closedAccount.handle(closeAccount, occurredAt));
     }
 }

@@ -10,6 +10,7 @@ import org.girardsimon.wealthpay.account.domain.model.Money;
 import org.junit.jupiter.api.Test;
 
 import java.math.BigDecimal;
+import java.time.Instant;
 import java.util.Currency;
 import java.util.List;
 
@@ -28,7 +29,7 @@ class AccountOpeningTest {
         OpenAccount openAccount = new OpenAccount(accountId, initialBalance, currency);
 
         // Act
-        List<AccountEvent> events = Account.handle(openAccount);
+        List<AccountEvent> events = Account.handle(openAccount, Instant.now());
         Account account = Account.rehydrate(events);
 
         // Assert
@@ -53,8 +54,9 @@ class AccountOpeningTest {
         OpenAccount openAccount = new OpenAccount(accountId, initialBalance, eur);
 
         // Act ... Assert
+        Instant occurredAt = Instant.now();
         assertThatExceptionOfType(IllegalArgumentException.class)
-            .isThrownBy(() -> Account.handle(openAccount));
+            .isThrownBy(() -> Account.handle(openAccount, occurredAt));
     }
 
     @Test
@@ -66,8 +68,9 @@ class AccountOpeningTest {
         OpenAccount openAccount = new OpenAccount(accountId, initialBalance, currency);
 
         // Act ... Assert
+        Instant occurredAt = Instant.now();
         assertThatExceptionOfType(IllegalArgumentException.class)
-                .isThrownBy(() -> Account.handle(openAccount));
+                .isThrownBy(() -> Account.handle(openAccount, occurredAt));
     }
 
     @Test
@@ -79,8 +82,9 @@ class AccountOpeningTest {
         OpenAccount openAccount = new OpenAccount(accountId, initialBalance, currency);
 
         // Act ... Assert
+        Instant occurredAt = Instant.now();
         assertThatExceptionOfType(IllegalArgumentException.class)
-                .isThrownBy(() -> Account.handle(openAccount));
+                .isThrownBy(() -> Account.handle(openAccount, occurredAt));
     }
 
     @Test
@@ -91,8 +95,9 @@ class AccountOpeningTest {
         OpenAccount openAccount = new OpenAccount(null, initialBalance, currency);
 
         // Act ... Assert
+        Instant occurredAt = Instant.now();
         assertThatExceptionOfType(IllegalArgumentException.class)
-                .isThrownBy(() -> Account.handle(openAccount));
+                .isThrownBy(() -> Account.handle(openAccount, occurredAt));
     }
 
 }
