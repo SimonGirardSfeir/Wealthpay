@@ -1,0 +1,157 @@
+package org.girardsimon.wealthpay.account.domain;
+
+import org.girardsimon.wealthpay.account.domain.command.CreditAccount;
+import org.girardsimon.wealthpay.account.domain.command.OpenAccount;
+import org.girardsimon.wealthpay.account.domain.event.AccountClosed;
+import org.girardsimon.wealthpay.account.domain.event.AccountEvent;
+import org.girardsimon.wealthpay.account.domain.event.AccountOpened;
+import org.girardsimon.wealthpay.account.domain.event.FundsCredited;
+import org.girardsimon.wealthpay.account.domain.event.FundsDebited;
+import org.girardsimon.wealthpay.account.domain.model.Account;
+import org.girardsimon.wealthpay.account.domain.model.AccountId;
+import org.girardsimon.wealthpay.account.domain.model.AccountStatus;
+import org.girardsimon.wealthpay.account.domain.model.Money;
+import org.junit.jupiter.api.Test;
+
+import java.math.BigDecimal;
+import java.time.Instant;
+import java.util.Currency;
+import java.util.List;
+import java.util.stream.Stream;
+
+import static org.assertj.core.api.Assertions.assertThat;
+import static org.assertj.core.api.Assertions.assertThatExceptionOfType;
+import static org.junit.jupiter.api.Assertions.assertAll;
+
+class AccountCreditTest {
+
+    @Test
+    void creditAccount_emits_FundsCredited_event_and_updates_account_balance() {
+        // Arrange
+        AccountId accountId = AccountId.newId();
+        Currency currency = Currency.getInstance("USD");
+        Money initialBalance = Money.of(BigDecimal.valueOf(10L), currency);
+        OpenAccount openAccount = new OpenAccount(accountId, initialBalance, currency);
+        Money creditAmount = Money.of(BigDecimal.valueOf(5L), currency);
+        CreditAccount creditAccount = new CreditAccount(accountId, creditAmount);
+
+        // Act
+        List<AccountEvent> openingEvents = Account.handle(openAccount);
+        Account account = Account.rehydrate(openingEvents);
+        List<AccountEvent> creditEvents = account.handle(creditAccount);
+        List<AccountEvent> allEvents = Stream.concat(openingEvents.stream(), creditEvents.stream()).toList();
+        Account accountAfterCredit = Account.rehydrate(allEvents);
+
+        // Assert
+        Money expectedBalance = Money.of(BigDecimal.valueOf(15L), currency);
+        assertAll(
+                () -> assertThat(allEvents).hasSize(2),
+                () -> assertThat(allEvents.getLast()).isInstanceOf(FundsCredited.class),
+                () -> assertThat(allEvents.getLast().version()).isEqualTo(2L),
+                () -> assertThat(accountAfterCredit.getBalance()).isEqualTo(expectedBalance),
+                () -> assertThat(accountAfterCredit.getStatus()).isEqualTo(AccountStatus.ACTIVE),
+                () -> assertThat(accountAfterCredit.getVersion()).isEqualTo(2L)
+        );
+    }
+
+    @Test
+    void creditAccount_requires_same_currency_as_account() {
+        // Arrange
+        AccountId accountId = AccountId.newId();
+        Currency usd = Currency.getInstance("USD");
+        Money initialBalance = Money.of(BigDecimal.valueOf(10L), usd);
+        AccountOpened accountOpened = new AccountOpened(
+                accountId,
+                Instant.now(),
+                1L,
+                usd,
+                initialBalance
+        );
+        Account account = Account.rehydrate(List.of(accountOpened));
+        Currency chf = Currency.getInstance("CHF");
+        Money creditAmount = Money.of(BigDecimal.valueOf(5L), chf);
+        CreditAccount creditAccount = new CreditAccount(accountId, creditAmount);
+
+        // Act ... Assert
+        assertThatExceptionOfType(IllegalArgumentException.class)
+                .isThrownBy(() -> account.handle(creditAccount));
+    }
+
+    @Test
+    void creditAccount_requires_same_id_as_account() {
+        // Arrange
+        AccountId accountId = AccountId.newId();
+        Currency usd = Currency.getInstance("USD");
+        Money initialBalance = Money.of(BigDecimal.valueOf(10L), usd);
+        AccountOpened accountOpened = new AccountOpened(
+                accountId,
+                Instant.now(),
+                1L,
+                usd,
+                initialBalance
+        );
+        Account account = Account.rehydrate(List.of(accountOpened));
+        Money creditAmount = Money.of(BigDecimal.valueOf(5L), usd);
+        AccountId otherAccountId = AccountId.newId();
+        CreditAccount creditAccount = new CreditAccount(otherAccountId, creditAmount);
+
+        // Act ... Assert
+        assertThatExceptionOfType(IllegalArgumentException.class)
+                .isThrownBy(() -> account.handle(creditAccount));
+    }
+
+    @Test
+    void creditAccount_requires_strictly_positive_amount() {
+        // Arrange
+        AccountId accountId = AccountId.newId();
+        Currency usd = Currency.getInstance("USD");
+        Money initialBalance = Money.of(BigDecimal.valueOf(10L), usd);
+        AccountOpened accountOpened = new AccountOpened(
+                accountId,
+                Instant.now(),
+                1L,
+                usd,
+                initialBalance
+        );
+        Account account = Account.rehydrate(List.of(accountOpened));
+        Money creditAmount = Money.of(BigDecimal.valueOf(-10L), usd);
+        CreditAccount creditAccount = new CreditAccount(accountId, creditAmount);
+
+        // Act ... Assert
+        assertThatExceptionOfType(IllegalArgumentException.class)
+                .isThrownBy(() -> account.handle(creditAccount));
+    }
+
+    @Test
+    void creditAccount_requires_account_to_be_active() {
+        // Arrange
+        AccountId accountId = AccountId.newId();
+        Currency usd = Currency.getInstance("USD");
+        Money initialBalance = Money.of(BigDecimal.valueOf(10L), usd);
+        AccountOpened opened = new AccountOpened(
+                accountId,
+                Instant.now(),
+                1L,
+                usd,
+                initialBalance
+        );
+        FundsDebited debited = new FundsDebited(
+                accountId,
+                Instant.now(),
+                2L,
+                initialBalance
+        );
+        AccountClosed closed = new AccountClosed(
+                accountId,
+                Instant.now(),
+                3L
+        );
+        Account closedAccount = Account.rehydrate(List.of(opened, debited, closed));
+        Money creditAmount = Money.of(BigDecimal.valueOf(10L), usd);
+        CreditAccount creditAccount = new CreditAccount(accountId, creditAmount);
+
+        // Act + Assert
+        assertThatExceptionOfType(IllegalStateException.class)
+                .isThrownBy(() -> closedAccount.handle(creditAccount));
+    }
+}

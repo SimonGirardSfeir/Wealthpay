@@ -1,0 +1,98 @@
+package org.girardsimon.wealthpay.account.domain;
+
+import org.girardsimon.wealthpay.account.domain.command.OpenAccount;
+import org.girardsimon.wealthpay.account.domain.event.AccountEvent;
+import org.girardsimon.wealthpay.account.domain.event.AccountOpened;
+import org.girardsimon.wealthpay.account.domain.model.Account;
+import org.girardsimon.wealthpay.account.domain.model.AccountId;
+import org.girardsimon.wealthpay.account.domain.model.AccountStatus;
+import org.girardsimon.wealthpay.account.domain.model.Money;
+import org.junit.jupiter.api.Test;
+
+import java.math.BigDecimal;
+import java.util.Currency;
+import java.util.List;
+
+import static org.assertj.core.api.Assertions.assertThat;
+import static org.assertj.core.api.Assertions.assertThatExceptionOfType;
+import static org.junit.jupiter.api.Assertions.assertAll;
+
+class AccountOpeningTest {
+
+    @Test
+    void openAccountCommand_produces_accountOpenedEvent() {
+        // Arrange
+        AccountId accountId = AccountId.newId();
+        Currency currency = Currency.getInstance("USD");
+        Money initialBalance = Money.of(BigDecimal.valueOf(10L), currency);
+        OpenAccount openAccount = new OpenAccount(accountId, initialBalance, currency);
+
+        // Act
+        List<AccountEvent> events = Account.handle(openAccount);
+        Account account = Account.rehydrate(events);
+
+        // Assert
+        assertAll(
+                () -> assertThat(events).hasSize(1),
+                () -> assertThat(events.getFirst()).isInstanceOf(AccountOpened.class),
+                () -> assertThat(account.getId()).isEqualTo(accountId),
+                () -> assertThat(account.getCurrency()).isEqualTo(currency),
+                () -> assertThat(account.getStatus()).isEqualTo(AccountStatus.ACTIVE),
+                () -> assertThat(account.getBalance()).isEqualTo(initialBalance),
+                () -> assertThat(account.getVersion()).isEqualTo(1L)
+        );
+    }
+
+    @Test
+    void openAccountCommand_requires_initial_balance_in_same_currency_as_currency_of_account() {
+        // Arrange
+        AccountId accountId = AccountId.newId();
+        Currency usd = Currency.getInstance("USD");
+        Currency eur = Currency.getInstance("EUR");
+        Money initialBalance = Money.of(BigDecimal.valueOf(10L), usd);
+        OpenAccount openAccount = new OpenAccount(accountId, initialBalance, eur);
+
+        // Act ... Assert
+        assertThatExceptionOfType(IllegalArgumentException.class)
+            .isThrownBy(() -> Account.handle(openAccount));
+    }
+
+    @Test
+    void openAccountCommand_does_not_permit_negative_initial_balance() {
+        // Arrange
+        AccountId accountId = AccountId.newId();
+        Currency currency = Currency.getInstance("USD");
+        Money initialBalance = Money.of(BigDecimal.valueOf(-10L), currency);
+        OpenAccount openAccount = new OpenAccount(accountId, initialBalance, currency);
+
+        // Act ... Assert
+        assertThatExceptionOfType(IllegalArgumentException.class)
+                .isThrownBy(() -> Account.handle(openAccount));
+    }
+
+    @Test
+    void openAccountCommand_does_not_permit_zero_initial_balance() {
+        // Arrange
+        AccountId accountId = AccountId.newId();
+        Currency currency = Currency.getInstance("USD");
+        Money initialBalance = Money.of(BigDecimal.ZERO, currency);
+        OpenAccount openAccount = new OpenAccount(accountId, initialBalance, currency);
+
+        // Act ... Assert
+        assertThatExceptionOfType(IllegalArgumentException.class)
+                .isThrownBy(() -> Account.handle(openAccount));
+    }
+
+    @Test
+    void openAccountCommand_does_not_permit_null_id() {
+        // Arrange
+        Currency currency = Currency.getInstance("USD");
+        Money initialBalance = Money.of(BigDecimal.valueOf(10L), currency);
+        OpenAccount openAccount = new OpenAccount(null, initialBalance, currency);
+
+        // Act ... Assert
+        assertThatExceptionOfType(IllegalArgumentException.class)
+                .isThrownBy(() -> Account.handle(openAccount));
+    }
+
+}
