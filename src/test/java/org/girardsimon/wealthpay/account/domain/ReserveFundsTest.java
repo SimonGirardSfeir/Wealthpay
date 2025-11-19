@@ -7,6 +7,12 @@ import org.girardsimon.wealthpay.account.domain.event.AccountEvent;
 import org.girardsimon.wealthpay.account.domain.event.AccountOpened;
 import org.girardsimon.wealthpay.account.domain.event.FundsDebited;
 import org.girardsimon.wealthpay.account.domain.event.FundsReserved;
+import org.girardsimon.wealthpay.account.domain.exception.AccountCurrencyMismatchException;
+import org.girardsimon.wealthpay.account.domain.exception.AccountIdMismatchException;
+import org.girardsimon.wealthpay.account.domain.exception.AccountInactiveException;
+import org.girardsimon.wealthpay.account.domain.exception.AmountMustBePositiveException;
+import org.girardsimon.wealthpay.account.domain.exception.InsufficientFundsException;
+import org.girardsimon.wealthpay.account.domain.exception.ReservationAlreadyExistsException;
 import org.girardsimon.wealthpay.account.domain.model.Account;
 import org.girardsimon.wealthpay.account.domain.model.AccountId;
 import org.girardsimon.wealthpay.account.domain.model.AccountStatus;
@@ -32,13 +38,13 @@ class ReserveFundsTest {
         AccountId accountId = AccountId.newId();
         Currency currency = Currency.getInstance("USD");
         Money initialBalance = Money.of(BigDecimal.valueOf(15L), currency);
-        OpenAccount openAccount = new OpenAccount(accountId, initialBalance, currency);
+        OpenAccount openAccount = new OpenAccount(initialBalance, currency);
         Money reservationAmount = Money.of(BigDecimal.valueOf(5L), currency);
         ReservationId reservationId = ReservationId.newId();
         ReserveFunds reserveFunds = new ReserveFunds(accountId, reservationId, reservationAmount);
 
         // Act
-        List<AccountEvent> openingEvents = Account.handle(openAccount, Instant.now());
+        List<AccountEvent> openingEvents = Account.handle(openAccount, accountId, Instant.now());
         Account account = Account.rehydrate(openingEvents);
         List<AccountEvent> reserveFundsEvents = account.handle(reserveFunds, Instant.now());
         List<AccountEvent> allEvents = Stream.concat(openingEvents.stream(), reserveFundsEvents.stream()).toList();
@@ -79,7 +85,7 @@ class ReserveFundsTest {
 
         // Act ... Assert
         Instant occurredAt = Instant.now();
-        assertThatExceptionOfType(IllegalArgumentException.class)
+        assertThatExceptionOfType(AccountCurrencyMismatchException.class)
                 .isThrownBy(() -> account.handle(reserveFunds, occurredAt));
     }
 
@@ -104,7 +110,7 @@ class ReserveFundsTest {
 
         // Act ... Assert
         Instant occurredAt = Instant.now();
-        assertThatExceptionOfType(IllegalArgumentException.class)
+        assertThatExceptionOfType(AccountIdMismatchException.class)
                 .isThrownBy(() -> account.handle(reserveFunds, occurredAt));
     }
 
@@ -128,30 +134,7 @@ class ReserveFundsTest {
 
         // Act ... Assert
         Instant occurredAt = Instant.now();
-        assertThatExceptionOfType(IllegalArgumentException.class)
-                .isThrownBy(() -> account.handle(reserveFunds, occurredAt));
-    }
-
-    @Test
-    void reserveFunds_requires_strictly_non_null_reservation_id() {
-        // Arrange
-        AccountId accountId = AccountId.newId();
-        Currency usd = Currency.getInstance("USD");
-        Money initialBalance = Money.of(BigDecimal.valueOf(10L), usd);
-        AccountOpened accountOpened = new AccountOpened(
-                accountId,
-                Instant.now(),
-                1L,
-                usd,
-                initialBalance
-        );
-        Account account = Account.rehydrate(List.of(accountOpened));
-        Money reservedAmount = Money.of(BigDecimal.valueOf(5L), usd);
-        ReserveFunds reserveFunds = new ReserveFunds(accountId, null, reservedAmount);
-
-        // Act ... Assert
-        Instant occurredAt = Instant.now();
-        assertThatExceptionOfType(IllegalArgumentException.class)
+        assertThatExceptionOfType(AmountMustBePositiveException.class)
                 .isThrownBy(() -> account.handle(reserveFunds, occurredAt));
     }
 
@@ -186,7 +169,7 @@ class ReserveFundsTest {
 
         // Act + Assert
         Instant occurredAt = Instant.now();
-        assertThatExceptionOfType(IllegalStateException.class)
+        assertThatExceptionOfType(AccountInactiveException.class)
                 .isThrownBy(() -> closedAccount.handle(reserveFunds, occurredAt));
     }
 
@@ -218,7 +201,7 @@ class ReserveFundsTest {
 
         // Act + Assert
         Instant occurredAt = Instant.now();
-        assertThatExceptionOfType(IllegalArgumentException.class)
+        assertThatExceptionOfType(InsufficientFundsException.class)
                 .isThrownBy(() -> account.handle(reserveFunds, occurredAt));
     }
 
@@ -250,7 +233,7 @@ class ReserveFundsTest {
 
         // Act ... Assert
         Instant occurredAt = Instant.now();
-        assertThatExceptionOfType(IllegalArgumentException.class)
+        assertThatExceptionOfType(ReservationAlreadyExistsException.class)
                 .isThrownBy(() -> closedAccount.handle(reserveFunds, occurredAt));
     }
 }

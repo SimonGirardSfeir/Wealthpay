@@ -13,6 +13,17 @@ import org.girardsimon.wealthpay.account.domain.event.FundsCredited;
 import org.girardsimon.wealthpay.account.domain.event.FundsDebited;
 import org.girardsimon.wealthpay.account.domain.event.FundsReserved;
 import org.girardsimon.wealthpay.account.domain.event.ReservationCancelled;
+import org.girardsimon.wealthpay.account.domain.exception.AccountCurrencyMismatchException;
+import org.girardsimon.wealthpay.account.domain.exception.AccountHistoryNotFound;
+import org.girardsimon.wealthpay.account.domain.exception.AccountIdMismatchException;
+import org.girardsimon.wealthpay.account.domain.exception.AccountInactiveException;
+import org.girardsimon.wealthpay.account.domain.exception.AccountNotEmptyException;
+import org.girardsimon.wealthpay.account.domain.exception.AmountMustBePositiveException;
+import org.girardsimon.wealthpay.account.domain.exception.InsufficientFundsException;
+import org.girardsimon.wealthpay.account.domain.exception.InvalidAccountEventStreamException;
+import org.girardsimon.wealthpay.account.domain.exception.InvalidInitialBalanceException;
+import org.girardsimon.wealthpay.account.domain.exception.ReservationAlreadyExistsException;
+import org.girardsimon.wealthpay.account.domain.exception.ReservationNotFoundException;
 
 import java.time.Instant;
 import java.util.Currency;
@@ -33,19 +44,17 @@ public class Account {
         this.currency = currency;
     }
 
-    public static List<AccountEvent> handle(OpenAccount openAccount, Instant occurredAt) {
-        if(openAccount.accountId() == null) {
-            throw new IllegalArgumentException("Account id must not be null");
-        }
+    public static List<AccountEvent> handle(OpenAccount openAccount, AccountId accountId, Instant occurredAt) {
         if(openAccount.initialBalance() == null
                 || openAccount.initialBalance().isNegativeOrZero()) {
-            throw new IllegalArgumentException("Initial balance must be positive");
+            throw new InvalidInitialBalanceException(openAccount.initialBalance());
         }
         if(!openAccount.initialBalance().currency().equals(openAccount.currency())) {
-            throw new IllegalArgumentException("Initial balance currency must be the same as account currency");
+            throw new AccountCurrencyMismatchException(openAccount.initialBalance().currency().getCurrencyCode() ,
+                    openAccount.currency().getCurrencyCode());
         }
         AccountOpened accountOpened = new AccountOpened(
-                openAccount.accountId(),
+                accountId,
                 occurredAt,
                 1L,
                 openAccount.currency(),
@@ -70,7 +79,7 @@ public class Account {
 
     private static void checkStrictlyPositiveAmount(Money amount) {
         if(amount.isNegativeOrZero()) {
-            throw new IllegalArgumentException("Amount %s must be positive".formatted(amount));
+            throw new AmountMustBePositiveException(amount);
         }
     }
 
@@ -80,7 +89,7 @@ public class Account {
         checkStrictlyPositiveAmount(debitAccount.amount());
         ensureActive();
         if(debitAccount.amount().isGreaterThan(this.balance)) {
-            throw new IllegalArgumentException("Insufficient funds");
+            throw new InsufficientFundsException();
         }
         FundsDebited fundsDebited = new FundsDebited(
                 debitAccount.accountId(),
@@ -92,18 +101,15 @@ public class Account {
     }
 
     public List<AccountEvent> handle(ReserveFunds reserveFunds, Instant occurredAt) {
-        if(reserveFunds.amount() == null || reserveFunds.reservationId() == null) {
-            throw new IllegalArgumentException("Amount and reservationId must not be null");
-        }
         ensureAccountIdConsistency(reserveFunds.accountId());
         checkCurrencyConsistency(reserveFunds.amount().currency());
         checkStrictlyPositiveAmount(reserveFunds.amount());
         ensureActive();
         if(reserveFunds.amount().isGreaterThan(getAvailableBalance())) {
-            throw new IllegalArgumentException("Insufficient funds");
+            throw new InsufficientFundsException();
         }
         if(this.reservations.containsKey(reserveFunds.reservationId())) {
-            throw new IllegalArgumentException("Reservation already exists");
+            throw new ReservationAlreadyExistsException(reserveFunds.reservationId());
         }
         FundsReserved fundsReserved = new FundsReserved(
                 reserveFunds.accountId(),
@@ -116,12 +122,9 @@ public class Account {
     }
 
     public List<AccountEvent> handle(CancelReservation cancelReservation, Instant occurredAt) {
-        if(cancelReservation.reservationId() == null) {
-            throw new IllegalArgumentException("Reservation id must not be null");
-        }
         ensureAccountIdConsistency(cancelReservation.accountId());
         if(!this.reservations.containsKey(cancelReservation.reservationId())) {
-            throw new IllegalArgumentException("Reservation does not exist");
+            throw new ReservationNotFoundException(cancelReservation.reservationId());
         }
         ensureActive();
         ReservationCancelled reservationCancelled = new ReservationCancelled(
@@ -137,7 +140,7 @@ public class Account {
         ensureAccountIdConsistency(closeAccount.accountId());
         ensureActive();
         if(!this.balance.isAmountZero()) {
-            throw new IllegalStateException("We cannot close an account with non zero balance");
+            throw new AccountNotEmptyException();
         }
         AccountClosed accountClosed = new AccountClosed(
                 closeAccount.accountId(),
@@ -149,31 +152,29 @@ public class Account {
 
     private void ensureAccountIdConsistency(AccountId accountId) {
         if(!accountId.equals(this.id)) {
-            throw new IllegalArgumentException("Account id mismatch: %s vs %s"
-                    .formatted(accountId, this.id));
+            throw new AccountIdMismatchException(accountId, this.id);
         }
     }
 
     private void checkCurrencyConsistency(Currency currency) {
         if(!currency.equals(this.currency)) {
-            throw new IllegalArgumentException("Currency mismatch: %s vs %s"
-                    .formatted(currency, this.currency));
+            throw new AccountCurrencyMismatchException(this.currency.getCurrencyCode(), currency.getCurrencyCode());
         }
     }
 
     private void ensureActive() {
         if(this.status != AccountStatus.ACTIVE) {
-            throw new IllegalStateException("Account is not active");
+            throw new AccountInactiveException();
         }
     }
 
     public static Account rehydrate(List<AccountEvent> history) {
         if(history == null || history.isEmpty()) {
-            throw new IllegalArgumentException("Account history must not be null or empty");
+            throw new AccountHistoryNotFound();
         }
         AccountEvent firstEvent = history.getFirst();
         if(!(firstEvent instanceof AccountOpened accountOpened)) {
-            throw new IllegalArgumentException("Account history must start with AccountOpened event");
+            throw new InvalidAccountEventStreamException("Account history must start with AccountOpened event");
         }
         Account account = new Account(accountOpened.accountId(), accountOpened.currency());
         history.forEach(account::apply);

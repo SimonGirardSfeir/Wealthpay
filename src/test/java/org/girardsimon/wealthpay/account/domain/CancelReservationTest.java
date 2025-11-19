@@ -6,6 +6,9 @@ import org.girardsimon.wealthpay.account.domain.event.AccountEvent;
 import org.girardsimon.wealthpay.account.domain.event.AccountOpened;
 import org.girardsimon.wealthpay.account.domain.event.FundsReserved;
 import org.girardsimon.wealthpay.account.domain.event.ReservationCancelled;
+import org.girardsimon.wealthpay.account.domain.exception.AccountIdMismatchException;
+import org.girardsimon.wealthpay.account.domain.exception.AccountInactiveException;
+import org.girardsimon.wealthpay.account.domain.exception.ReservationNotFoundException;
 import org.girardsimon.wealthpay.account.domain.model.Account;
 import org.girardsimon.wealthpay.account.domain.model.AccountId;
 import org.girardsimon.wealthpay.account.domain.model.AccountStatus;
@@ -97,7 +100,7 @@ class CancelReservationTest {
 
         // Act ... Assert
         Instant occurredAt = Instant.now();
-        assertThatExceptionOfType(IllegalArgumentException.class)
+        assertThatExceptionOfType(ReservationNotFoundException.class)
                 .isThrownBy(() -> account.handle(cancelReservation, occurredAt));
     }
 
@@ -129,7 +132,7 @@ class CancelReservationTest {
 
         // Act ... Assert
         Instant occurredAt = Instant.now();
-        assertThatExceptionOfType(IllegalArgumentException.class)
+        assertThatExceptionOfType(AccountIdMismatchException.class)
                 .isThrownBy(() -> account.handle(cancelReservation, occurredAt));
     }
 
@@ -165,7 +168,7 @@ class CancelReservationTest {
 
         // Act ... Assert
         Instant occurredAt = Instant.now();
-        assertThatExceptionOfType(IllegalStateException.class)
+        assertThatExceptionOfType(AccountInactiveException.class)
                 .isThrownBy(() -> closedAccount.handle(cancelReservation, occurredAt));
     }
 }

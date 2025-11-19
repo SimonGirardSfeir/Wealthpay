@@ -1,0 +1,70 @@
+openapi: 3.1.0
+info:
+  title: WealthPay Account API
+  version: 1.0.0
+  description: API for account management in WealthPay.
+
+servers:
+  - url: http://localhost:8080
+    description: Local dev
+
+paths:
+  /health:
+    get:
+      summary: Health check endpoint
+      operationId: healthCheck
+      responses:
+        '200':
+          description: OK
+
+components:
+  schemas:
+    ApiError:
+      type: object
+      required:
+        - message
+      properties:
+        status:
+          type: integer
+          example: 400
+        message:
+          type: string
+
+    ValidationError:
+      type: object
+      required:
+        - title
+        - status
+        - errors
+      properties:
+        title:
+          type: string
+          example: "Validation failed"
+        status:
+          type: integer
+          example: 400
+        errors:
+          type: array
+          items:
+            $ref: '#/components/schemas/FieldError'
+
+    FieldError:
+      type: object
+      required:
+        - field
+        - message
+      properties:
+        field:
+          type: string
+          example: "initialBalance"
+        message:
+          type: string
+          example: "must be greater than or equal to 0"
+        rejectedValue:
+          type: string
+          nullable: true
+          example: "-1000.00"
+        code:
+          type: string
+          description: "Validation code (ex: NotNull, DecimalMin…)"
+          example: "DecimalMin"

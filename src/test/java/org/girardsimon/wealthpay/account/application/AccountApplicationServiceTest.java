@@ -3,6 +3,7 @@ package org.girardsimon.wealthpay.account.application;
 import org.girardsimon.wealthpay.account.domain.command.OpenAccount;
 import org.girardsimon.wealthpay.account.domain.event.AccountOpened;
 import org.girardsimon.wealthpay.account.domain.model.AccountId;
+import org.girardsimon.wealthpay.account.domain.model.AccountIdGenerator;
 import org.girardsimon.wealthpay.account.domain.model.Money;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
@@ -30,18 +31,22 @@ class AccountApplicationServiceTest {
             ZoneOffset.UTC
     );
 
+    AccountId accountId = AccountId.newId();
+
+    AccountIdGenerator accountIdGenerator = () -> accountId;
+
     AccountApplicationService accountApplicationService = new AccountApplicationService(
             accountEventStore,
-            clock
+            clock,
+            accountIdGenerator
     );
 
     @Test
     void openAccount_saves_event_AccountOpened_when_account_does_not_exist() {
         // Arrange
-        AccountId accountId = AccountId.newId();
         Currency currency = Currency.getInstance("USD");
         Money initialBalance = new Money(BigDecimal.valueOf(10L), currency);
-        OpenAccount openAccount = new OpenAccount(accountId, initialBalance, currency);
+        OpenAccount openAccount = new OpenAccount(initialBalance, currency);
         when(accountEventStore.loadEvents(accountId)).thenReturn(List.of());
 
         // Act
@@ -55,16 +60,15 @@ class AccountApplicationServiceTest {
                 currency,
                 initialBalance
         );
-        verify(accountEventStore).appendEvents(accountId, 1L, List.of(accountOpened));
+        verify(accountEventStore).appendEvents(accountId, 0L, List.of(accountOpened));
     }
 
     @Test
     void openAccount_should_not_save_event_AccountOpened_when_account_already_exists() {
         // Arrange
-        AccountId accountId = AccountId.newId();
         Currency currency = Currency.getInstance("USD");
         Money initialBalance = new Money(BigDecimal.valueOf(10L), currency);
-        OpenAccount openAccount = new OpenAccount(accountId, initialBalance, currency);
+        OpenAccount openAccount = new OpenAccount(initialBalance, currency);
         when(accountEventStore.loadEvents(accountId)).thenReturn(List.of(mock(AccountOpened.class)));
 
         // Act ... Assert

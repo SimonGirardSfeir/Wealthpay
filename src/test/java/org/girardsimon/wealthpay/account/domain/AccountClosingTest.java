@@ -5,6 +5,8 @@ import org.girardsimon.wealthpay.account.domain.event.AccountClosed;
 import org.girardsimon.wealthpay.account.domain.event.AccountEvent;
 import org.girardsimon.wealthpay.account.domain.event.AccountOpened;
 import org.girardsimon.wealthpay.account.domain.event.FundsDebited;
+import org.girardsimon.wealthpay.account.domain.exception.AccountIdMismatchException;
+import org.girardsimon.wealthpay.account.domain.exception.AccountInactiveException;
 import org.girardsimon.wealthpay.account.domain.model.Account;
 import org.girardsimon.wealthpay.account.domain.model.AccountId;
 import org.girardsimon.wealthpay.account.domain.model.AccountStatus;
@@ -87,7 +89,7 @@ class AccountClosingTest {
 
         // Act ... Assert
         Instant occurredAt = Instant.now();
-        assertThatExceptionOfType(IllegalArgumentException.class)
+        assertThatExceptionOfType(AccountIdMismatchException.class)
                 .isThrownBy(() -> account.handle(closeAccount, occurredAt));
     }
 
@@ -120,7 +122,7 @@ class AccountClosingTest {
 
         // Act ... Assert
         Instant occurredAt = Instant.now();
-        assertThatExceptionOfType(IllegalStateException.class)
+        assertThatExceptionOfType(AccountInactiveException.class)
                 .isThrownBy(() -> closedAccount.handle(closeAccount, occurredAt));
     }
 }

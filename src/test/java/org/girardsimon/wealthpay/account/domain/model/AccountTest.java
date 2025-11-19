@@ -2,6 +2,8 @@ package org.girardsimon.wealthpay.account.domain.model;
 
 import org.girardsimon.wealthpay.account.domain.event.AccountEvent;
 import org.girardsimon.wealthpay.account.domain.event.FundsCredited;
+import org.girardsimon.wealthpay.account.domain.exception.AccountHistoryNotFound;
+import org.girardsimon.wealthpay.account.domain.exception.InvalidAccountEventStreamException;
 import org.junit.jupiter.api.Test;
 
 import java.math.BigDecimal;
@@ -29,7 +31,7 @@ class AccountTest {
         List<AccountEvent> history = List.of(fakeEvent);
 
         // Act ... Assert
-        assertThatExceptionOfType(IllegalArgumentException.class)
+        assertThatExceptionOfType(InvalidAccountEventStreamException.class)
                 .isThrownBy(() -> Account.rehydrate(history));
     }
 
@@ -39,7 +41,7 @@ class AccountTest {
         List<AccountEvent> history = Collections.emptyList();
 
         // Act ... Assert
-        assertThatExceptionOfType(IllegalArgumentException.class)
+        assertThatExceptionOfType(AccountHistoryNotFound.class)
                 .isThrownBy(() -> Account.rehydrate(history));
     }
 

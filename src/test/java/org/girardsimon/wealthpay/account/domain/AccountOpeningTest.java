@@ -3,6 +3,8 @@ package org.girardsimon.wealthpay.account.domain;
 import org.girardsimon.wealthpay.account.domain.command.OpenAccount;
 import org.girardsimon.wealthpay.account.domain.event.AccountEvent;
 import org.girardsimon.wealthpay.account.domain.event.AccountOpened;
+import org.girardsimon.wealthpay.account.domain.exception.AccountCurrencyMismatchException;
+import org.girardsimon.wealthpay.account.domain.exception.InvalidInitialBalanceException;
 import org.girardsimon.wealthpay.account.domain.model.Account;
 import org.girardsimon.wealthpay.account.domain.model.AccountId;
 import org.girardsimon.wealthpay.account.domain.model.AccountStatus;
@@ -26,10 +28,10 @@ class AccountOpeningTest {
         AccountId accountId = AccountId.newId();
         Currency currency = Currency.getInstance("USD");
         Money initialBalance = Money.of(BigDecimal.valueOf(10L), currency);
-        OpenAccount openAccount = new OpenAccount(accountId, initialBalance, currency);
+        OpenAccount openAccount = new OpenAccount(initialBalance, currency);
 
         // Act
-        List<AccountEvent> events = Account.handle(openAccount, Instant.now());
+        List<AccountEvent> events = Account.handle(openAccount, accountId, Instant.now());
         Account account = Account.rehydrate(events);
 
         // Assert
@@ -51,12 +53,12 @@ class AccountOpeningTest {
         Currency usd = Currency.getInstance("USD");
         Currency eur = Currency.getInstance("EUR");
         Money initialBalance = Money.of(BigDecimal.valueOf(10L), usd);
-        OpenAccount openAccount = new OpenAccount(accountId, initialBalance, eur);
+        OpenAccount openAccount = new OpenAccount(initialBalance, eur);
 
         // Act ... Assert
         Instant occurredAt = Instant.now();
-        assertThatExceptionOfType(IllegalArgumentException.class)
-            .isThrownBy(() -> Account.handle(openAccount, occurredAt));
+        assertThatExceptionOfType(AccountCurrencyMismatchException.class)
+            .isThrownBy(() -> Account.handle(openAccount, accountId, occurredAt));
     }
 
     @Test
@@ -65,12 +67,12 @@ class AccountOpeningTest {
         AccountId accountId = AccountId.newId();
         Currency currency = Currency.getInstance("USD");
         Money initialBalance = Money.of(BigDecimal.valueOf(-10L), currency);
-        OpenAccount openAccount = new OpenAccount(accountId, initialBalance, currency);
+        OpenAccount openAccount = new OpenAccount(initialBalance, currency);
 
         // Act ... Assert
         Instant occurredAt = Instant.now();
-        assertThatExceptionOfType(IllegalArgumentException.class)
-                .isThrownBy(() -> Account.handle(openAccount, occurredAt));
+        assertThatExceptionOfType(InvalidInitialBalanceException.class)
+                .isThrownBy(() -> Account.handle(openAccount, accountId, occurredAt));
     }
 
     @Test
@@ -79,25 +81,11 @@ class AccountOpeningTest {
         AccountId accountId = AccountId.newId();
         Currency currency = Currency.getInstance("USD");
         Money initialBalance = Money.of(BigDecimal.ZERO, currency);
-        OpenAccount openAccount = new OpenAccount(accountId, initialBalance, currency);
+        OpenAccount openAccount = new OpenAccount(initialBalance, currency);
 
         // Act ... Assert
         Instant occurredAt = Instant.now();
-        assertThatExceptionOfType(IllegalArgumentException.class)
-                .isThrownBy(() -> Account.handle(openAccount, occurredAt));
+        assertThatExceptionOfType(InvalidInitialBalanceException.class)
+                .isThrownBy(() -> Account.handle(openAccount, accountId, occurredAt));
     }
-
-    @Test
-    void openAccountCommand_does_not_permit_null_id() {
-        // Arrange
-        Currency currency = Currency.getInstance("USD");
-        Money initialBalance = Money.of(BigDecimal.valueOf(10L), currency);
-        OpenAccount openAccount = new OpenAccount(null, initialBalance, currency);
-
-        // Act ... Assert
-        Instant occurredAt = Instant.now();
-        assertThatExceptionOfType(IllegalArgumentException.class)
-                .isThrownBy(() -> Account.handle(openAccount, occurredAt));
-    }
-
 }

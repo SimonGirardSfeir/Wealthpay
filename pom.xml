@@ -6,7 +6,7 @@
         <groupId>org.springframework.boot</groupId>
         <artifactId>spring-boot-starter-parent</artifactId>
         <version>3.5.7</version>
-        <relativePath/> <!-- lookup parent from repository -->
+        <relativePath/>
     </parent>
     <groupId>org.girardsimon</groupId>
     <artifactId>wealthpay</artifactId>
@@ -44,10 +44,6 @@
         <dependency>
             <groupId>org.springframework.boot</groupId>
             <artifactId>spring-boot-starter-jooq</artifactId>
-        </dependency>
-        <dependency>
-            <groupId>org.springframework.boot</groupId>
-            <artifactId>spring-boot-starter-security</artifactId>
         </dependency>
         <dependency>
             <groupId>org.springframework.boot</groupId>
@@ -158,21 +154,48 @@
                 <version>${openapi-generator-maven-plugin.version}</version>
                 <executions>
                     <execution>
-                        <id>generate-api</id>
+                        <id>generate-account-api</id>
                         <goals>
                             <goal>generate</goal>
                         </goals>
                         <configuration>
                             <inputSpec>${project.basedir}/src/main/resources/openapi/account/account-api.yaml</inputSpec>
-                            <output>${project.build.directory}/generated-sources/openapi</output>
+                            <output>${project.build.directory}/generated-sources/openapi/</output>
                             <generatorName>spring</generatorName>
                             <apiPackage>org.girardsimon.wealthpay.account.api.generated</apiPackage>
                             <modelPackage>org.girardsimon.wealthpay.account.api.generated.model</modelPackage>
+                            <modelNameSuffix>Dto</modelNameSuffix>
+                            <apiNameSuffix>Api</apiNameSuffix>
                             <configOptions>
                                 <interfaceOnly>true</interfaceOnly>
+                                <skipDefaultInterface>true</skipDefaultInterface>
                                 <useSpringBoot3>true</useSpringBoot3>
+                                <requestMappingMode>api_interface</requestMappingMode>
                                 <dateLibrary>java8</dateLibrary>
-                                <java8>false</java8>
+                                <disallowAdditionalPropertiesIfNotPresent>false</disallowAdditionalPropertiesIfNotPresent>
+                            </configOptions>
+                        </configuration>
+                    </execution>
+                    <execution>
+                        <id>generate-shared-api</id>
+                        <goals>
+                            <goal>generate</goal>
+                        </goals>
+                        <configuration>
+                            <inputSpec>${project.basedir}/src/main/resources/openapi/shared-api.yaml</inputSpec>
+                            <output>${project.build.directory}/generated-sources/openapi/</output>
+                            <generatorName>spring</generatorName>
+                            <apiPackage>org.girardsimon.wealthpay.shared.api.generated</apiPackage>
+                            <modelPackage>org.girardsimon.wealthpay.shared.api.generated.model</modelPackage>
+                            <modelNameSuffix>Dto</modelNameSuffix>
+                            <apiNameSuffix>Api</apiNameSuffix>
+                            <configOptions>
+                                <interfaceOnly>true</interfaceOnly>
+                                <skipDefaultInterface>true</skipDefaultInterface>
+                                <useSpringBoot3>true</useSpringBoot3>
+                                <requestMappingMode>api_interface</requestMappingMode>
+                                <dateLibrary>java8</dateLibrary>
+                                <disallowAdditionalPropertiesIfNotPresent>false</disallowAdditionalPropertiesIfNotPresent>
                             </configOptions>
                         </configuration>
                     </execution>

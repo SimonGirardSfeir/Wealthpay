@@ -7,6 +7,10 @@ import org.girardsimon.wealthpay.account.domain.event.AccountEvent;
 import org.girardsimon.wealthpay.account.domain.event.AccountOpened;
 import org.girardsimon.wealthpay.account.domain.event.FundsCredited;
 import org.girardsimon.wealthpay.account.domain.event.FundsDebited;
+import org.girardsimon.wealthpay.account.domain.exception.AccountCurrencyMismatchException;
+import org.girardsimon.wealthpay.account.domain.exception.AccountIdMismatchException;
+import org.girardsimon.wealthpay.account.domain.exception.AccountInactiveException;
+import org.girardsimon.wealthpay.account.domain.exception.AmountMustBePositiveException;
 import org.girardsimon.wealthpay.account.domain.model.Account;
 import org.girardsimon.wealthpay.account.domain.model.AccountId;
 import org.girardsimon.wealthpay.account.domain.model.AccountStatus;
@@ -31,12 +35,12 @@ class AccountCreditTest {
         AccountId accountId = AccountId.newId();
         Currency currency = Currency.getInstance("USD");
         Money initialBalance = Money.of(BigDecimal.valueOf(10L), currency);
-        OpenAccount openAccount = new OpenAccount(accountId, initialBalance, currency);
+        OpenAccount openAccount = new OpenAccount(initialBalance, currency);
         Money creditAmount = Money.of(BigDecimal.valueOf(5L), currency);
         CreditAccount creditAccount = new CreditAccount(accountId, creditAmount);
 
         // Act
-        List<AccountEvent> openingEvents = Account.handle(openAccount, Instant.now());
+        List<AccountEvent> openingEvents = Account.handle(openAccount, accountId, Instant.now());
         Account account = Account.rehydrate(openingEvents);
         List<AccountEvent> creditEvents = account.handle(creditAccount, Instant.now());
         List<AccountEvent> allEvents = Stream.concat(openingEvents.stream(), creditEvents.stream()).toList();
@@ -74,7 +78,7 @@ class AccountCreditTest {
 
         // Act ... Assert
         Instant occurredAt = Instant.now();
-        assertThatExceptionOfType(IllegalArgumentException.class)
+        assertThatExceptionOfType(AccountCurrencyMismatchException.class)
                 .isThrownBy(() -> account.handle(creditAccount, occurredAt));
     }
 
@@ -98,7 +102,7 @@ class AccountCreditTest {
 
         // Act ... Assert
         Instant occurredAt = Instant.now();
-        assertThatExceptionOfType(IllegalArgumentException.class)
+        assertThatExceptionOfType(AccountIdMismatchException.class)
                 .isThrownBy(() -> account.handle(creditAccount, occurredAt));
     }
 
@@ -121,7 +125,7 @@ class AccountCreditTest {
 
         // Act ... Assert
         Instant occurredAt = Instant.now();
-        assertThatExceptionOfType(IllegalArgumentException.class)
+        assertThatExceptionOfType(AmountMustBePositiveException.class)
                 .isThrownBy(() -> account.handle(creditAccount, occurredAt));
     }
 
@@ -155,7 +159,7 @@ class AccountCreditTest {
 
         // Act + Assert
         Instant occurredAt = Instant.now();
-        assertThatExceptionOfType(IllegalStateException.class)
+        assertThatExceptionOfType(AccountInactiveException.class)
                 .isThrownBy(() -> closedAccount.handle(creditAccount, occurredAt));
     }
 }

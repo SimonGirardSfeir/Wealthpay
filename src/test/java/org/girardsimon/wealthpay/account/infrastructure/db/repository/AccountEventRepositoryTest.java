@@ -15,11 +15,6 @@ import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.autoconfigure.jooq.JooqTest;
 import org.springframework.context.annotation.Import;
 import org.springframework.dao.OptimisticLockingFailureException;
-import org.springframework.test.context.DynamicPropertyRegistry;
-import org.springframework.test.context.DynamicPropertySource;
-import org.testcontainers.containers.PostgreSQLContainer;
-import org.testcontainers.junit.jupiter.Container;
-import org.testcontainers.junit.jupiter.Testcontainers;
 
 import java.math.BigDecimal;
 import java.time.Instant;
@@ -35,31 +30,15 @@ import static org.jooq.impl.DSL.table;
 import static org.junit.jupiter.api.Assertions.assertAll;
 
 @JooqTest
-@Testcontainers
 @Import({
         AccountEventRepository.class,
         EventStoreEntryToAccountEventMapper.class,
         AccountEventSerializer.class,
         ObjectMapper.class
 })
-class AccountEventRepositoryTest {
+class AccountEventRepositoryTest extends AbstractContainerTest{
 
-    @Container
-    @SuppressWarnings("resource")
-    static PostgreSQLContainer<?> postgres = new PostgreSQLContainer<>("postgres:16")
-            .withDatabaseName("wealthpay")
-            .withUsername("wealthpay")
-            .withPassword("wealthpay");
 
-    @DynamicPropertySource
-    static void configureDatasource(DynamicPropertyRegistry registry) {
-        registry.add("spring.datasource.url", postgres::getJdbcUrl);
-        registry.add("spring.datasource.username", postgres::getUsername);
-        registry.add("spring.datasource.password", postgres::getPassword);
-        registry.add("spring.flyway.default-schema", () -> "account");
-        registry.add("spring.flyway.schemas", () -> "account");
-        registry.add("spring.flyway.locations", () -> "classpath:db/migration/account");
-    }
 
     @Autowired
     private DSLContext dsl;
@@ -174,7 +153,7 @@ class AccountEventRepositoryTest {
                 initialBalance
         );
 
-        // Act + Assert
+        // Act ... Assert
         List<AccountEvent> openedEvents = List.of(opened);
         assertThatExceptionOfType(OptimisticLockingFailureException.class)
                 .isThrownBy(() -> accountEventStore.appendEvents(accountId, 0L, openedEvents));

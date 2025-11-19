@@ -1,5 +1,5 @@
 @ApplicationModule(
-        type = ApplicationModule.Type.CLOSED,
+        type = ApplicationModule.Type.OPEN,
         allowedDependencies = {}
 )
 package org.girardsimon.wealthpay.shared;
