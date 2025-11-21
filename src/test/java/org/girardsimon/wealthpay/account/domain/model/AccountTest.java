@@ -9,7 +9,6 @@ import org.junit.jupiter.api.Test;
 import java.math.BigDecimal;
 import java.time.Instant;
 import java.util.Collections;
-import java.util.Currency;
 import java.util.List;
 
 import static org.assertj.core.api.AssertionsForClassTypes.assertThatExceptionOfType;
@@ -20,7 +19,7 @@ class AccountTest {
     void rehydrate_requires_first_event_to_be_account_opened() {
         // Arrange
         AccountId accountId = AccountId.newId();
-        Currency currency = Currency.getInstance("USD");
+        SupportedCurrency currency = SupportedCurrency.USD;
         Money credit = Money.of(BigDecimal.valueOf(10L), currency);
         AccountEvent fakeEvent = new FundsCredited(
                 accountId,

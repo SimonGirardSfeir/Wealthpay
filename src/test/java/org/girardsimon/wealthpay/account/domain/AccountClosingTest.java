@@ -11,11 +11,11 @@ import org.girardsimon.wealthpay.account.domain.model.Account;
 import org.girardsimon.wealthpay.account.domain.model.AccountId;
 import org.girardsimon.wealthpay.account.domain.model.AccountStatus;
 import org.girardsimon.wealthpay.account.domain.model.Money;
+import org.girardsimon.wealthpay.account.domain.model.SupportedCurrency;
 import org.junit.jupiter.api.Test;
 
 import java.math.BigDecimal;
 import java.time.Instant;
-import java.util.Currency;
 import java.util.List;
 import java.util.stream.Stream;
 
@@ -29,7 +29,7 @@ class AccountClosingTest {
     void closeAccount_emits_AccountClosed_event_and_set_status_to_CLOSED() {
         // Arrange
         AccountId accountId = AccountId.newId();
-        Currency currency = Currency.getInstance("USD");
+        SupportedCurrency currency = SupportedCurrency.USD;
         Money initialBalance = Money.of(BigDecimal.valueOf(10L), currency);
         AccountOpened opened = new AccountOpened(
                 accountId,
@@ -68,7 +68,7 @@ class AccountClosingTest {
     void closeAccount_requires_same_id_as_account() {
         // Arrange
         AccountId accountId = AccountId.newId();
-        Currency currency = Currency.getInstance("USD");
+        SupportedCurrency currency = SupportedCurrency.USD;
         Money initialBalance = Money.of(BigDecimal.valueOf(10L), currency);
         AccountOpened opened = new AccountOpened(
                 accountId,
@@ -97,7 +97,7 @@ class AccountClosingTest {
     void closeAccount_requires_account_to_be_active() {
         // Arrange
         AccountId accountId = AccountId.newId();
-        Currency currency = Currency.getInstance("USD");
+        SupportedCurrency currency = SupportedCurrency.USD;
         Money initialBalance = Money.of(BigDecimal.valueOf(10L), currency);
         AccountOpened opened = new AccountOpened(
                 accountId,

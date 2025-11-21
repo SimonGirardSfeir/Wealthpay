@@ -12,17 +12,17 @@ import org.springframework.dao.DataIntegrityViolationException;
 import org.springframework.dao.OptimisticLockingFailureException;
 import org.springframework.stereotype.Repository;
 
-import java.time.Instant;
 import java.util.List;
 import java.util.UUID;
+import java.util.logging.Logger;
 
-import static org.jooq.impl.DSL.field;
+import static org.girardsimon.wealthpay.account.jooq.tables.EventStore.EVENT_STORE;
 import static org.jooq.impl.DSL.max;
-import static org.jooq.impl.DSL.name;
-import static org.jooq.impl.DSL.table;
 
 @Repository
 public class AccountEventRepository implements AccountEventStore {
+
+    private static final Logger log = Logger.getLogger(AccountEventRepository.class.getName());
 
     private final DSLContext dslContext;
     private final EventStoreEntryToAccountEventMapper eventStoreEntryToAccountEventMapper;
@@ -39,16 +39,16 @@ public class AccountEventRepository implements AccountEventStore {
         UUID accountUuid = accountId.id();
 
         List<EventStoreEntry> rows = dslContext.select(
-                        field("id", Long.class),
-                        field("account_id", UUID.class),
-                        field("version", Long.class),
-                        field("event_type", String.class),
-                        field("payload", JSONB.class),
-                        field("created_at", Instant.class)
+                        EVENT_STORE.ID,
+                        EVENT_STORE.ACCOUNT_ID,
+                        EVENT_STORE.VERSION,
+                        EVENT_STORE.EVENT_TYPE,
+                        EVENT_STORE.PAYLOAD,
+                        EVENT_STORE.CREATED_AT
                 )
-                .from(table(name("account", "event_store")))
-                .where(field("account_id", UUID.class).eq(accountUuid))
-                .orderBy(field("version").asc())
+                .from(EVENT_STORE)
+                .where(EVENT_STORE.ACCOUNT_ID.eq(accountUuid))
+                .orderBy(EVENT_STORE.VERSION.asc())
                 .fetchInto(EventStoreEntry.class);
 
         return rows.stream()
@@ -65,9 +65,9 @@ public class AccountEventRepository implements AccountEventStore {
         UUID accountUuid = accountId.id();
 
         Long currentVersion = dslContext
-                .select(max(field("version", Long.class)))
-                .from(table(name("account", "event_store")))
-                .where(field("account_id", UUID.class).eq(accountUuid))
+                .select(max(EVENT_STORE.VERSION))
+                .from(EVENT_STORE)
+                .where(EVENT_STORE.ACCOUNT_ID.eq(accountUuid))
                 .fetchOneInto(Long.class);
 
         long actualVersion = currentVersion != null ? currentVersion : 0L;
@@ -84,12 +84,12 @@ public class AccountEventRepository implements AccountEventStore {
                 String eventType = event.getClass().getSimpleName();
                 JSONB payload = accountEventSerializer.apply(event);
 
-                dslContext.insertInto(table(name("account", "event_store")))
+                dslContext.insertInto(EVENT_STORE)
                         .columns(
-                                field("account_id"),
-                                field("version"),
-                                field("event_type"),
-                                field("payload")
+                                EVENT_STORE.ACCOUNT_ID,
+                                EVENT_STORE.VERSION,
+                                EVENT_STORE.EVENT_TYPE,
+                                EVENT_STORE.PAYLOAD
                         )
                         .values(
                                 accountUuid,
@@ -100,6 +100,7 @@ public class AccountEventRepository implements AccountEventStore {
                         .execute();
             }
         } catch (DataIntegrityViolationException e) {
+            log.warning("Error while appending events to account %s".formatted(accountUuid));
             throw new OptimisticLockingFailureException(
                     "Concurrent modification detected for account %s".formatted(accountUuid), e);
         }

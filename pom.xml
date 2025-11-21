@@ -35,6 +35,7 @@
         <jackson-databind-nullable.version>0.2.8</jackson-databind-nullable.version>
         <flyway-core.version>11.17.0</flyway-core.version>
         <maven-dependency-plugin.version>3.9.0</maven-dependency-plugin.version>
+        <jooq-codegen-maven.version>3.19.27</jooq-codegen-maven.version>
     </properties>
     <dependencies>
         <dependency>
@@ -221,8 +222,43 @@
                     <argLine>@{argLine} -javaagent:${org.mockito:mockito-core:jar}</argLine>
                 </configuration>
             </plugin>
-
+            <plugin>
+                <groupId>org.jooq</groupId>
+                <artifactId>jooq-codegen-maven</artifactId>
+                <version>${jooq-codegen-maven.version}</version>
+                <executions>
+                    <execution>
+                        <id>account</id>
+                        <phase>generate-sources</phase>
+                        <goals>
+                            <goal>generate</goal>
+                        </goals>
+                        <configuration>
+                            <jdbc>
+                                <driver>org.postgresql.Driver</driver>
+                                <url>jdbc:postgresql://localhost:5432/wealthpay</url>
+                                <user>user</user>
+                                <password>password</password>
+                            </jdbc>
+                            <generator>
+                                <name>org.jooq.codegen.JavaGenerator</name>
+                                <database>
+                                    <name>org.jooq.meta.postgres.PostgresDatabase</name>
+                                    <inputSchema>account</inputSchema>
+                                </database>
+                                <generate>
+                                    <daos>false</daos>
+                                    <pojos>true</pojos>
+                                </generate>
+                                <target>
+                                    <packageName>org.girardsimon.wealthpay.account.jooq</packageName>
+                                    <directory>target/generated-sources/jooq</directory>
+                                </target>
+                            </generator>
+                        </configuration>
+                    </execution>
+                </executions>
+            </plugin>
         </plugins>
     </build>
-
 </project>

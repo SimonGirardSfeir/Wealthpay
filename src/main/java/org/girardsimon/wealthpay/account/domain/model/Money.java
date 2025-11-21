@@ -1,20 +1,19 @@
 package org.girardsimon.wealthpay.account.domain.model;
 
 import java.math.BigDecimal;
-import java.util.Currency;
 
-public record Money(BigDecimal amount, Currency currency) {
+public record Money(BigDecimal amount, SupportedCurrency currency) {
     public Money {
         if(amount == null || currency == null) {
             throw new IllegalArgumentException("amount and currency must not be null");
         }
     }
 
-    public static Money of(BigDecimal amount, Currency currency) {
+    public static Money of(BigDecimal amount, SupportedCurrency currency) {
         return new Money(amount, currency);
     }
 
-    public static Money zero(Currency currency) {
+    public static Money zero(SupportedCurrency currency) {
         return Money.of(BigDecimal.ZERO, currency);
     }
 

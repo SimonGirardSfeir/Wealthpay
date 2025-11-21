@@ -54,20 +54,21 @@ components:
     OpenAccountRequest:
       type: object
       required:
-        - currency
-        - initialBalance
+        - accountCurrency
+        - initialAmount
+        - initialAmountCurrency
       properties:
-        currency:
-          type: string
-          description: ISO 4217 currency code (e.g. USD, EUR, CHF)
-          pattern: '^[A-Z]{3}$'
-          minLength: 3
-          maxLength: 3
-        initialBalance:
+        accountCurrency:
+          description: Currency of the account (base currency of all operations)
+          $ref: '#/components/schemas/SupportedCurrency'
+        initialAmount:
           type: number
-          description: The initial account balance must be > 0
+          description: Initial amount credited when opening the account
           minimum: 0
           exclusiveMinimum: true
+        initialAmountCurrency:
+          description: Currency of the initial deposit
+          $ref: '#/components/schemas/SupportedCurrency'
 
     OpenAccountResponse:
       type: object
@@ -90,9 +91,38 @@ components:
           type: string
           format: uuid
         currency:
-          type: string
-          minLength: 3
-          maxLength: 3
+          $ref: '#/components/schemas/SupportedCurrency'
         balance:
           type: number
           format: double
+
+    SupportedCurrency:
+      type: string
+      description: ISO 4217 currency code (e.g. USD, EUR, CHF)
+      enum: 
+        - USD
+        - AED
+        - AUD
+        - CAD
+        - CHF
+        - CNH
+        - CZK
+        - DKK
+        - EUR
+        - GBP
+        - HKD
+        - HUF
+        - ILS
+        - JPY
+        - KRW
+        - MXN
+        - MYR
+        - NOK
+        - NZD
+        - PLN
+        - SAR
+        - SEK
+        - SGD
+        - TRY
+        - TWD
+        - ZAR

@@ -14,11 +14,11 @@ import org.girardsimon.wealthpay.account.domain.model.AccountId;
 import org.girardsimon.wealthpay.account.domain.model.AccountStatus;
 import org.girardsimon.wealthpay.account.domain.model.Money;
 import org.girardsimon.wealthpay.account.domain.model.ReservationId;
+import org.girardsimon.wealthpay.account.domain.model.SupportedCurrency;
 import org.junit.jupiter.api.Test;
 
 import java.math.BigDecimal;
 import java.time.Instant;
-import java.util.Currency;
 import java.util.List;
 import java.util.stream.Stream;
 
@@ -32,7 +32,7 @@ class CancelReservationTest {
     void cancelReservation_emits_ReservationCanceled_and_update_account_reservations() {
         // Arrange
         AccountId accountId = AccountId.newId();
-        Currency usd = Currency.getInstance("USD");
+        SupportedCurrency usd = SupportedCurrency.USD;
         Money initialBalance = Money.of(BigDecimal.valueOf(100L), usd);
         AccountOpened opened = new AccountOpened(
                 accountId,
@@ -76,7 +76,7 @@ class CancelReservationTest {
     void cancelReservation_requires_existing_reservation() {
         // Arrange
         AccountId accountId = AccountId.newId();
-        Currency usd = Currency.getInstance("USD");
+        SupportedCurrency usd = SupportedCurrency.USD;
         Money initialBalance = Money.of(BigDecimal.valueOf(100L), usd);
         AccountOpened opened = new AccountOpened(
                 accountId,
@@ -108,7 +108,7 @@ class CancelReservationTest {
     void cancelReservation_requires_same_id_as_account() {
         // Arrange
         AccountId accountId = AccountId.newId();
-        Currency usd = Currency.getInstance("USD");
+        SupportedCurrency usd = SupportedCurrency.USD;
         Money initialBalance = Money.of(BigDecimal.valueOf(100L), usd);
         AccountOpened opened = new AccountOpened(
                 accountId,
@@ -140,7 +140,7 @@ class CancelReservationTest {
     void cancelReservation_requires_account_to_be_active() {
         // Arrange
         AccountId accountId = AccountId.newId();
-        Currency usd = Currency.getInstance("USD");
+        SupportedCurrency usd = SupportedCurrency.USD;
         Money initialBalance = Money.of(BigDecimal.valueOf(10L), usd);
         AccountOpened opened = new AccountOpened(
                 accountId,

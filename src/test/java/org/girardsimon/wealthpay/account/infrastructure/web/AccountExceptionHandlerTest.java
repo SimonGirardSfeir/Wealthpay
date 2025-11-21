@@ -1,5 +1,6 @@
 package org.girardsimon.wealthpay.account.infrastructure.web;
 
+import org.girardsimon.wealthpay.account.domain.exception.AccountAlreadyExistsException;
 import org.girardsimon.wealthpay.account.domain.exception.AccountCurrencyMismatchException;
 import org.girardsimon.wealthpay.account.domain.exception.AccountHistoryNotFound;
 import org.girardsimon.wealthpay.account.domain.exception.AccountIdMismatchException;
@@ -14,6 +15,7 @@ import org.girardsimon.wealthpay.account.domain.exception.ReservationNotFoundExc
 import org.girardsimon.wealthpay.account.domain.model.AccountId;
 import org.girardsimon.wealthpay.account.domain.model.Money;
 import org.girardsimon.wealthpay.account.domain.model.ReservationId;
+import org.girardsimon.wealthpay.account.domain.model.SupportedCurrency;
 import org.girardsimon.wealthpay.shared.infrastructure.web.FakeController;
 import org.girardsimon.wealthpay.shared.infrastructure.web.FakeService;
 import org.junit.jupiter.params.ParameterizedTest;
@@ -26,7 +28,6 @@ import org.springframework.test.context.bean.override.mockito.MockitoBean;
 import org.springframework.test.web.servlet.MockMvc;
 
 import java.math.BigDecimal;
-import java.util.Currency;
 import java.util.stream.Stream;
 
 import static org.mockito.Mockito.when;
@@ -88,8 +89,10 @@ class AccountExceptionHandlerTest {
     }
 
     private static Stream<Arguments> allConflictExceptions() {
+        AccountId accountId = AccountId.newId();
         return Stream.of(
-                Arguments.of(new AccountInactiveException(), "Account is inactive")
+                Arguments.of(new AccountInactiveException(), "Account is inactive"),
+                Arguments.of(new AccountAlreadyExistsException(accountId), "Account "+ accountId + " already exists")
         );
     }
 
@@ -107,7 +110,7 @@ class AccountExceptionHandlerTest {
     }
 
     private static Stream<Arguments> allUnprocessableEntityExceptions() {
-        Money negativeAmount = Money.of(BigDecimal.valueOf(-100L), Currency.getInstance("USD"));
+        Money negativeAmount = Money.of(BigDecimal.valueOf(-100L), SupportedCurrency.USD);
         ReservationId reservationId = ReservationId.newId();
         return Stream.of(
                 Arguments.of(new InvalidInitialBalanceException(negativeAmount), "Initial balance must be strictly positive, got Money[amount=-100, currency=USD]"),

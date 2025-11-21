@@ -6,6 +6,7 @@ import org.girardsimon.wealthpay.account.domain.event.AccountEvent;
 import org.girardsimon.wealthpay.account.domain.event.AccountOpened;
 import org.girardsimon.wealthpay.account.domain.model.AccountId;
 import org.girardsimon.wealthpay.account.domain.model.Money;
+import org.girardsimon.wealthpay.account.domain.model.SupportedCurrency;
 import org.girardsimon.wealthpay.account.infrastructure.db.repository.mapper.AccountEventSerializer;
 import org.girardsimon.wealthpay.account.infrastructure.db.repository.mapper.EventStoreEntryToAccountEventMapper;
 import org.jooq.DSLContext;
@@ -18,7 +19,6 @@ import org.springframework.dao.OptimisticLockingFailureException;
 
 import java.math.BigDecimal;
 import java.time.Instant;
-import java.util.Currency;
 import java.util.List;
 import java.util.UUID;
 
@@ -83,9 +83,9 @@ class AccountEventRepositoryTest extends AbstractContainerTest{
                 () -> assertThat(accountOpened.accountId()).isEqualTo(accountId),
                 () -> assertThat(accountOpened.occurredAt()).isEqualTo(Instant.parse("2025-11-16T15:00:00Z")),
                 () -> assertThat(accountOpened.version()).isEqualTo(1L),
-                () -> assertThat(accountOpened.currency()).isEqualTo(Currency.getInstance("USD")),
+                () -> assertThat(accountOpened.currency()).isEqualTo(SupportedCurrency.USD),
                 () -> assertThat(accountOpened.initialBalance().amount()).isEqualTo(BigDecimal.valueOf(10L)),
-                () -> assertThat(accountOpened.initialBalance().currency()).isEqualTo(Currency.getInstance("USD"))
+                () -> assertThat(accountOpened.initialBalance().currency()).isEqualTo(SupportedCurrency.USD)
         );
     }
 
@@ -93,7 +93,7 @@ class AccountEventRepositoryTest extends AbstractContainerTest{
     void appendEvents_persists_events_nominally() {
         // Arrange
         AccountId accountId = AccountId.newId();
-        Currency usd = Currency.getInstance("USD");
+        SupportedCurrency usd = SupportedCurrency.USD;
         Money initialBalance = Money.of(BigDecimal.TEN, usd);
         Instant occurredAt = Instant.parse("2025-11-16T15:00:00Z");
 
@@ -118,9 +118,9 @@ class AccountEventRepositoryTest extends AbstractContainerTest{
                 () -> assertThat(accountOpened.accountId()).isEqualTo(accountId),
                 () -> assertThat(accountOpened.occurredAt()).isEqualTo(Instant.parse("2025-11-16T15:00:00Z")),
                 () -> assertThat(accountOpened.version()).isEqualTo(1L),
-                () -> assertThat(accountOpened.currency()).isEqualTo(Currency.getInstance("USD")),
+                () -> assertThat(accountOpened.currency()).isEqualTo(SupportedCurrency.USD),
                 () -> assertThat(accountOpened.initialBalance().amount()).isEqualTo(BigDecimal.valueOf(10L)),
-                () -> assertThat(accountOpened.initialBalance().currency()).isEqualTo(Currency.getInstance("USD"))
+                () -> assertThat(accountOpened.initialBalance().currency()).isEqualTo(SupportedCurrency.USD)
         );
     }
 
@@ -143,7 +143,7 @@ class AccountEventRepositoryTest extends AbstractContainerTest{
                         JSONB.valueOf("{}")
                 )
                 .execute();
-        Currency usd = Currency.getInstance("USD");
+        SupportedCurrency usd = SupportedCurrency.USD;
         Money initialBalance = Money.of(BigDecimal.TEN, usd);
         AccountOpened opened = new AccountOpened(
                 accountId,

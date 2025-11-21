@@ -15,11 +15,11 @@ import org.girardsimon.wealthpay.account.domain.model.Account;
 import org.girardsimon.wealthpay.account.domain.model.AccountId;
 import org.girardsimon.wealthpay.account.domain.model.AccountStatus;
 import org.girardsimon.wealthpay.account.domain.model.Money;
+import org.girardsimon.wealthpay.account.domain.model.SupportedCurrency;
 import org.junit.jupiter.api.Test;
 
 import java.math.BigDecimal;
 import java.time.Instant;
-import java.util.Currency;
 import java.util.List;
 import java.util.stream.Stream;
 
@@ -33,14 +33,14 @@ class AccountCreditTest {
     void creditAccount_emits_FundsCredited_event_and_updates_account_balance() {
         // Arrange
         AccountId accountId = AccountId.newId();
-        Currency currency = Currency.getInstance("USD");
+        SupportedCurrency currency = SupportedCurrency.USD;
         Money initialBalance = Money.of(BigDecimal.valueOf(10L), currency);
-        OpenAccount openAccount = new OpenAccount(initialBalance, currency);
+        OpenAccount openAccount = new OpenAccount(currency, initialBalance);
         Money creditAmount = Money.of(BigDecimal.valueOf(5L), currency);
         CreditAccount creditAccount = new CreditAccount(accountId, creditAmount);
 
         // Act
-        List<AccountEvent> openingEvents = Account.handle(openAccount, accountId, Instant.now());
+        List<AccountEvent> openingEvents = Account.handle(openAccount, accountId, 1L, Instant.now());
         Account account = Account.rehydrate(openingEvents);
         List<AccountEvent> creditEvents = account.handle(creditAccount, Instant.now());
         List<AccountEvent> allEvents = Stream.concat(openingEvents.stream(), creditEvents.stream()).toList();
@@ -62,7 +62,7 @@ class AccountCreditTest {
     void creditAccount_requires_same_currency_as_account() {
         // Arrange
         AccountId accountId = AccountId.newId();
-        Currency usd = Currency.getInstance("USD");
+        SupportedCurrency usd = SupportedCurrency.USD;
         Money initialBalance = Money.of(BigDecimal.valueOf(10L), usd);
         AccountOpened accountOpened = new AccountOpened(
                 accountId,
@@ -72,7 +72,7 @@ class AccountCreditTest {
                 initialBalance
         );
         Account account = Account.rehydrate(List.of(accountOpened));
-        Currency chf = Currency.getInstance("CHF");
+        SupportedCurrency chf = SupportedCurrency.CHF;
         Money creditAmount = Money.of(BigDecimal.valueOf(5L), chf);
         CreditAccount creditAccount = new CreditAccount(accountId, creditAmount);
 
@@ -86,17 +86,17 @@ class AccountCreditTest {
     void creditAccount_requires_same_id_as_account() {
         // Arrange
         AccountId accountId = AccountId.newId();
-        Currency usd = Currency.getInstance("USD");
-        Money initialBalance = Money.of(BigDecimal.valueOf(10L), usd);
+        SupportedCurrency currency = SupportedCurrency.USD;
+        Money initialBalance = Money.of(BigDecimal.valueOf(10L), currency);
         AccountOpened accountOpened = new AccountOpened(
                 accountId,
                 Instant.now(),
                 1L,
-                usd,
+                currency,
                 initialBalance
         );
         Account account = Account.rehydrate(List.of(accountOpened));
-        Money creditAmount = Money.of(BigDecimal.valueOf(5L), usd);
+        Money creditAmount = Money.of(BigDecimal.valueOf(5L), currency);
         AccountId otherAccountId = AccountId.newId();
         CreditAccount creditAccount = new CreditAccount(otherAccountId, creditAmount);
 
@@ -110,7 +110,7 @@ class AccountCreditTest {
     void creditAccount_requires_strictly_positive_amount() {
         // Arrange
         AccountId accountId = AccountId.newId();
-        Currency usd = Currency.getInstance("USD");
+        SupportedCurrency usd = SupportedCurrency.USD;
         Money initialBalance = Money.of(BigDecimal.valueOf(10L), usd);
         AccountOpened accountOpened = new AccountOpened(
                 accountId,
@@ -133,7 +133,7 @@ class AccountCreditTest {
     void creditAccount_requires_account_to_be_active() {
         // Arrange
         AccountId accountId = AccountId.newId();
-        Currency usd = Currency.getInstance("USD");
+        SupportedCurrency usd = SupportedCurrency.USD;
         Money initialBalance = Money.of(BigDecimal.valueOf(10L), usd);
         AccountOpened opened = new AccountOpened(
                 accountId,

@@ -2,9 +2,11 @@ package org.girardsimon.wealthpay.account.application;
 
 import org.girardsimon.wealthpay.account.domain.command.OpenAccount;
 import org.girardsimon.wealthpay.account.domain.event.AccountOpened;
+import org.girardsimon.wealthpay.account.domain.exception.AccountAlreadyExistsException;
 import org.girardsimon.wealthpay.account.domain.model.AccountId;
 import org.girardsimon.wealthpay.account.domain.model.AccountIdGenerator;
 import org.girardsimon.wealthpay.account.domain.model.Money;
+import org.girardsimon.wealthpay.account.domain.model.SupportedCurrency;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
 import org.mockito.junit.jupiter.MockitoExtension;
@@ -13,7 +15,6 @@ import java.math.BigDecimal;
 import java.time.Clock;
 import java.time.Instant;
 import java.time.ZoneOffset;
-import java.util.Currency;
 import java.util.List;
 
 import static org.assertj.core.api.Assertions.assertThatExceptionOfType;
@@ -44,9 +45,9 @@ class AccountApplicationServiceTest {
     @Test
     void openAccount_saves_event_AccountOpened_when_account_does_not_exist() {
         // Arrange
-        Currency currency = Currency.getInstance("USD");
+        SupportedCurrency currency = SupportedCurrency.USD;
         Money initialBalance = new Money(BigDecimal.valueOf(10L), currency);
-        OpenAccount openAccount = new OpenAccount(initialBalance, currency);
+        OpenAccount openAccount = new OpenAccount(currency, initialBalance);
         when(accountEventStore.loadEvents(accountId)).thenReturn(List.of());
 
         // Act
@@ -66,13 +67,13 @@ class AccountApplicationServiceTest {
     @Test
     void openAccount_should_not_save_event_AccountOpened_when_account_already_exists() {
         // Arrange
-        Currency currency = Currency.getInstance("USD");
+        SupportedCurrency currency = SupportedCurrency.USD;
         Money initialBalance = new Money(BigDecimal.valueOf(10L), currency);
-        OpenAccount openAccount = new OpenAccount(initialBalance, currency);
+        OpenAccount openAccount = new OpenAccount(currency, initialBalance);
         when(accountEventStore.loadEvents(accountId)).thenReturn(List.of(mock(AccountOpened.class)));
 
         // Act ... Assert
-        assertThatExceptionOfType(IllegalStateException.class)
+        assertThatExceptionOfType(AccountAlreadyExistsException.class)
                 .isThrownBy(() -> accountApplicationService.openAccount(openAccount));
     }
 

@@ -26,39 +26,39 @@ import org.girardsimon.wealthpay.account.domain.exception.ReservationAlreadyExis
 import org.girardsimon.wealthpay.account.domain.exception.ReservationNotFoundException;
 
 import java.time.Instant;
-import java.util.Currency;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 
 public class Account {
     private final AccountId id;
-    private final Currency currency;
+    private final SupportedCurrency currency;
     private Money balance;
     private AccountStatus status;
     private final Map<ReservationId, Money> reservations = new HashMap<>();
     private long version;
 
-    private Account(AccountId id, Currency currency) {
+    private Account(AccountId id, SupportedCurrency currency) {
         this.id = id;
         this.currency = currency;
     }
 
-    public static List<AccountEvent> handle(OpenAccount openAccount, AccountId accountId, Instant occurredAt) {
-        if(openAccount.initialBalance() == null
-                || openAccount.initialBalance().isNegativeOrZero()) {
-            throw new InvalidInitialBalanceException(openAccount.initialBalance());
+    public static List<AccountEvent> handle(OpenAccount openAccount, AccountId accountId, long version, Instant occurredAt) {
+        Money initialBalance = openAccount.initialBalance();
+        if(initialBalance.isNegativeOrZero()) {
+            throw new InvalidInitialBalanceException(initialBalance);
         }
-        if(!openAccount.initialBalance().currency().equals(openAccount.currency())) {
-            throw new AccountCurrencyMismatchException(openAccount.initialBalance().currency().getCurrencyCode() ,
-                    openAccount.currency().getCurrencyCode());
+        SupportedCurrency accountCurrency = openAccount.accountCurrency();
+        if(!initialBalance.currency().equals(accountCurrency)) {
+            throw new AccountCurrencyMismatchException(initialBalance.currency().name() ,
+                    accountCurrency.name());
         }
         AccountOpened accountOpened = new AccountOpened(
                 accountId,
                 occurredAt,
-                1L,
-                openAccount.currency(),
-                openAccount.initialBalance()
+                version,
+                accountCurrency,
+                initialBalance
         );
         return List.of(accountOpened);
     }
@@ -156,9 +156,9 @@ public class Account {
         }
     }
 
-    private void checkCurrencyConsistency(Currency currency) {
+    private void checkCurrencyConsistency(SupportedCurrency currency) {
         if(!currency.equals(this.currency)) {
-            throw new AccountCurrencyMismatchException(this.currency.getCurrencyCode(), currency.getCurrencyCode());
+            throw new AccountCurrencyMismatchException(this.currency.name(), currency.name());
         }
     }
 
@@ -219,7 +219,7 @@ public class Account {
         return status;
     }
 
-    public Currency getCurrency() {
+    public SupportedCurrency getCurrency() {
         return currency;
     }
 

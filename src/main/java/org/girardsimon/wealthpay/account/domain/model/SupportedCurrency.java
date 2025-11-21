@@ -1,0 +1,30 @@
+package org.girardsimon.wealthpay.account.domain.model;
+
+public enum SupportedCurrency {
+    USD,
+    AED,
+    AUD,
+    CAD,
+    CHF,
+    CNH,
+    CZK,
+    DKK,
+    EUR,
+    GBP,
+    HKD,
+    HUF,
+    ILS,
+    JPY,
+    KRW,
+    MXN,
+    MYR,
+    NOK,
+    NZD,
+    PLN,
+    SAR,
+    SEK,
+    SGD,
+    TRY,
+    TWD,
+    ZAR
+}

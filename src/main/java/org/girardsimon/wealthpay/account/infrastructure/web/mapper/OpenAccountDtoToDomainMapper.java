@@ -3,9 +3,9 @@ package org.girardsimon.wealthpay.account.infrastructure.web.mapper;
 import org.girardsimon.wealthpay.account.api.generated.model.OpenAccountRequestDto;
 import org.girardsimon.wealthpay.account.domain.command.OpenAccount;
 import org.girardsimon.wealthpay.account.domain.model.Money;
+import org.girardsimon.wealthpay.account.domain.model.SupportedCurrency;
 import org.springframework.stereotype.Component;
 
-import java.util.Currency;
 import java.util.function.Function;
 
 @Component
@@ -13,10 +13,11 @@ public class OpenAccountDtoToDomainMapper implements Function<OpenAccountRequest
 
     @Override
     public OpenAccount apply(OpenAccountRequestDto openAccountRequestDto) {
-        Currency currency = Currency.getInstance(openAccountRequestDto.getCurrency());
+
         return new OpenAccount(
-                Money.of(openAccountRequestDto.getInitialBalance(), currency),
-                currency
+                SupportedCurrency.valueOf(openAccountRequestDto.getAccountCurrency().name()),
+                Money.of(openAccountRequestDto.getInitialAmount(),
+                        SupportedCurrency.valueOf(openAccountRequestDto.getInitialAmountCurrency().name()))
         );
     }
 }

@@ -15,11 +15,11 @@ import org.girardsimon.wealthpay.account.domain.model.Account;
 import org.girardsimon.wealthpay.account.domain.model.AccountId;
 import org.girardsimon.wealthpay.account.domain.model.AccountStatus;
 import org.girardsimon.wealthpay.account.domain.model.Money;
+import org.girardsimon.wealthpay.account.domain.model.SupportedCurrency;
 import org.junit.jupiter.api.Test;
 
 import java.math.BigDecimal;
 import java.time.Instant;
-import java.util.Currency;
 import java.util.List;
 import java.util.stream.Stream;
 
@@ -33,14 +33,14 @@ class AccountDebitTest {
     void debitAccount_emits_FundsDebited_event_and_updates_account_balance() {
         // Arrange
         AccountId accountId = AccountId.newId();
-        Currency currency = Currency.getInstance("USD");
+        SupportedCurrency currency = SupportedCurrency.USD;
         Money initialBalance = Money.of(BigDecimal.valueOf(10L), currency);
-        OpenAccount openAccount = new OpenAccount(initialBalance, currency);
+        OpenAccount openAccount = new OpenAccount(currency, initialBalance);
         Money debitAmount = Money.of(BigDecimal.valueOf(5L), currency);
         DebitAccount debitAccount = new DebitAccount(accountId, debitAmount);
 
         // Act
-        List<AccountEvent> openingEvents = Account.handle(openAccount, accountId, Instant.now());
+        List<AccountEvent> openingEvents = Account.handle(openAccount, accountId, 1L, Instant.now());
         Account account = Account.rehydrate(openingEvents);
         List<AccountEvent> debitEvents = account.handle(debitAccount, Instant.now());
         List<AccountEvent> allEvents = Stream.concat(openingEvents.stream(), debitEvents.stream()).toList();
@@ -62,7 +62,7 @@ class AccountDebitTest {
     void debitAccount_requires_same_currency_as_account() {
         // Arrange
         AccountId accountId = AccountId.newId();
-        Currency usd = Currency.getInstance("USD");
+        SupportedCurrency usd = SupportedCurrency.USD;
         Money initialBalance = Money.of(BigDecimal.valueOf(10L), usd);
         AccountOpened accountOpened = new AccountOpened(
                 accountId,
@@ -72,7 +72,7 @@ class AccountDebitTest {
                 initialBalance
         );
         Account account = Account.rehydrate(List.of(accountOpened));
-        Currency chf = Currency.getInstance("CHF");
+        SupportedCurrency chf = SupportedCurrency.CHF;
         Money debitAmount = Money.of(BigDecimal.valueOf(5L), chf);
         DebitAccount debitAccount = new DebitAccount(accountId, debitAmount);
 
@@ -86,7 +86,7 @@ class AccountDebitTest {
     void debitAccount_requires_same_id_as_account() {
         // Arrange
         AccountId accountId = AccountId.newId();
-        Currency usd = Currency.getInstance("USD");
+        SupportedCurrency usd = SupportedCurrency.USD;
         Money initialBalance = Money.of(BigDecimal.valueOf(10L), usd);
         AccountOpened accountOpened = new AccountOpened(
                 accountId,
@@ -110,7 +110,7 @@ class AccountDebitTest {
     void debitAccount_requires_strictly_positive_amount() {
         // Arrange
         AccountId accountId = AccountId.newId();
-        Currency usd = Currency.getInstance("USD");
+        SupportedCurrency usd = SupportedCurrency.USD;
         Money initialBalance = Money.of(BigDecimal.valueOf(10L), usd);
         AccountOpened accountOpened = new AccountOpened(
                 accountId,
@@ -133,7 +133,7 @@ class AccountDebitTest {
     void debitAccount_requires_account_to_be_active() {
         // Arrange
         AccountId accountId = AccountId.newId();
-        Currency usd = Currency.getInstance("USD");
+        SupportedCurrency usd = SupportedCurrency.USD;
         Money initialBalance = Money.of(BigDecimal.valueOf(10L), usd);
         AccountOpened opened = new AccountOpened(
                 accountId,
@@ -167,7 +167,7 @@ class AccountDebitTest {
     void debitAccount_requires_resulting_balance_to_be_positive() {
         // Arrange
         AccountId accountId = AccountId.newId();
-        Currency usd = Currency.getInstance("USD");
+        SupportedCurrency usd = SupportedCurrency.USD;
         Money initialBalance = Money.of(BigDecimal.valueOf(10L), usd);
         AccountOpened accountOpened = new AccountOpened(
                 accountId,

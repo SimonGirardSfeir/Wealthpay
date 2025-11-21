@@ -3,8 +3,7 @@ package org.girardsimon.wealthpay.shared.infrastructure.web;
 import org.girardsimon.wealthpay.shared.api.generated.model.ApiErrorDto;
 import org.girardsimon.wealthpay.shared.api.generated.model.FieldErrorDto;
 import org.girardsimon.wealthpay.shared.api.generated.model.ValidationErrorDto;
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
+import org.springframework.dao.OptimisticLockingFailureException;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.http.converter.HttpMessageNotReadableException;
@@ -18,12 +17,35 @@ import java.util.Optional;
 @RestControllerAdvice
 public class GlobalExceptionHandler {
 
-    private static final Logger log = LoggerFactory.getLogger(GlobalExceptionHandler.class);
+    @ExceptionHandler({
+            IllegalArgumentException.class,
+            HttpMessageNotReadableException.class
+    })
+    public ResponseEntity<ApiErrorDto> handleBadRequestException(Exception e) {
+        ApiErrorDto apiErrorDto = new ApiErrorDto()
+                .status(HttpStatus.BAD_REQUEST.value())
+                .message(e.getMessage());
 
+        return ResponseEntity
+                .badRequest()
+                .body(apiErrorDto);
+    }
+
+    @ExceptionHandler({
+            OptimisticLockingFailureException.class
+    })
+    public ResponseEntity<ApiErrorDto> handleConflictException(Exception e) {
+        ApiErrorDto apiErrorDto = new ApiErrorDto()
+                .status(HttpStatus.CONFLICT.value())
+                .message(e.getMessage());
+
+        return ResponseEntity
+                .status(HttpStatus.CONFLICT)
+                .body(apiErrorDto);
+    }
 
     @ExceptionHandler(MethodArgumentNotValidException.class)
     public ResponseEntity<ValidationErrorDto> handleVMethodArgumentNotValidException(MethodArgumentNotValidException e) {
-        log.warn("Validation failed", e);
         List<FieldErrorDto> fieldErrors = e.getBindingResult()
                 .getFieldErrors()
                 .stream()
@@ -46,17 +68,4 @@ public class GlobalExceptionHandler {
                 .badRequest()
                 .body(body);
     }
-
-    @ExceptionHandler(HttpMessageNotReadableException.class)
-    public ResponseEntity<ApiErrorDto> handleHttpMessageNotReadableException(HttpMessageNotReadableException e) {
-        log.warn("Message not readable", e);
-        ApiErrorDto apiErrorDto = new ApiErrorDto()
-                .status(HttpStatus.BAD_REQUEST.value())
-                .message(e.getMessage());
-
-        return ResponseEntity
-                .badRequest()
-                .body(apiErrorDto);
-    }
-
 }

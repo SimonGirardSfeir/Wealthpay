@@ -18,11 +18,11 @@ import org.girardsimon.wealthpay.account.domain.model.AccountId;
 import org.girardsimon.wealthpay.account.domain.model.AccountStatus;
 import org.girardsimon.wealthpay.account.domain.model.Money;
 import org.girardsimon.wealthpay.account.domain.model.ReservationId;
+import org.girardsimon.wealthpay.account.domain.model.SupportedCurrency;
 import org.junit.jupiter.api.Test;
 
 import java.math.BigDecimal;
 import java.time.Instant;
-import java.util.Currency;
 import java.util.List;
 import java.util.stream.Stream;
 
@@ -36,15 +36,15 @@ class ReserveFundsTest {
     void reserveFunds_emits_FundsReserved_event_and_update_account_reservations() {
         // Arrange
         AccountId accountId = AccountId.newId();
-        Currency currency = Currency.getInstance("USD");
+        SupportedCurrency currency = SupportedCurrency.USD;
         Money initialBalance = Money.of(BigDecimal.valueOf(15L), currency);
-        OpenAccount openAccount = new OpenAccount(initialBalance, currency);
+        OpenAccount openAccount = new OpenAccount(currency, initialBalance);
         Money reservationAmount = Money.of(BigDecimal.valueOf(5L), currency);
         ReservationId reservationId = ReservationId.newId();
         ReserveFunds reserveFunds = new ReserveFunds(accountId, reservationId, reservationAmount);
 
         // Act
-        List<AccountEvent> openingEvents = Account.handle(openAccount, accountId, Instant.now());
+        List<AccountEvent> openingEvents = Account.handle(openAccount, accountId, 1L, Instant.now());
         Account account = Account.rehydrate(openingEvents);
         List<AccountEvent> reserveFundsEvents = account.handle(reserveFunds, Instant.now());
         List<AccountEvent> allEvents = Stream.concat(openingEvents.stream(), reserveFundsEvents.stream()).toList();
@@ -68,7 +68,7 @@ class ReserveFundsTest {
     void reserveFunds_requires_same_currency_as_account() {
         // Arrange
         AccountId accountId = AccountId.newId();
-        Currency usd = Currency.getInstance("USD");
+        SupportedCurrency usd = SupportedCurrency.USD;
         Money initialBalance = Money.of(BigDecimal.valueOf(10L), usd);
         AccountOpened accountOpened = new AccountOpened(
                 accountId,
@@ -78,7 +78,7 @@ class ReserveFundsTest {
                 initialBalance
         );
         Account account = Account.rehydrate(List.of(accountOpened));
-        Currency chf = Currency.getInstance("CHF");
+        SupportedCurrency chf = SupportedCurrency.CHF;
         Money reservedAmount = Money.of(BigDecimal.valueOf(5L), chf);
         ReservationId reservationId = ReservationId.newId();
         ReserveFunds reserveFunds = new ReserveFunds(accountId, reservationId, reservedAmount);
@@ -93,7 +93,7 @@ class ReserveFundsTest {
     void reserveFunds_requires_same_id_as_account() {
         // Arrange
         AccountId accountId = AccountId.newId();
-        Currency usd = Currency.getInstance("USD");
+        SupportedCurrency usd = SupportedCurrency.USD;
         Money initialBalance = Money.of(BigDecimal.valueOf(10L), usd);
         AccountOpened accountOpened = new AccountOpened(
                 accountId,
@@ -118,7 +118,7 @@ class ReserveFundsTest {
     void reserveFunds_requires_strictly_positive_amount() {
         // Arrange
         AccountId accountId = AccountId.newId();
-        Currency usd = Currency.getInstance("USD");
+        SupportedCurrency usd = SupportedCurrency.USD;
         Money initialBalance = Money.of(BigDecimal.valueOf(10L), usd);
         AccountOpened accountOpened = new AccountOpened(
                 accountId,
@@ -142,7 +142,7 @@ class ReserveFundsTest {
     void reserveFunds_requires_account_to_be_active() {
         // Arrange
         AccountId accountId = AccountId.newId();
-        Currency usd = Currency.getInstance("USD");
+        SupportedCurrency usd = SupportedCurrency.USD;
         Money initialBalance = Money.of(BigDecimal.valueOf(10L), usd);
         AccountOpened opened = new AccountOpened(
                 accountId,
@@ -177,7 +177,7 @@ class ReserveFundsTest {
     void reserveFunds_requires_reserved_amount_to_be_less_than_account_available_balance() {
         // Arrange
         AccountId accountId = AccountId.newId();
-        Currency usd = Currency.getInstance("USD");
+        SupportedCurrency usd = SupportedCurrency.USD;
         Money initialBalance = Money.of(BigDecimal.valueOf(100L), usd);
         AccountOpened opened = new AccountOpened(
                 accountId,
@@ -209,7 +209,7 @@ class ReserveFundsTest {
     void reserveFunds_should_throw_exception_if_reservationId_already_exists() {
         // Arrange
         AccountId accountId = AccountId.newId();
-        Currency usd = Currency.getInstance("USD");
+        SupportedCurrency usd = SupportedCurrency.USD;
         Money initialBalance = Money.of(BigDecimal.valueOf(100L), usd);
         AccountOpened opened = new AccountOpened(
                 accountId,

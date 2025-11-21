@@ -7,6 +7,7 @@ import org.girardsimon.wealthpay.account.domain.event.AccountEvent;
 import org.girardsimon.wealthpay.account.domain.event.AccountOpened;
 import org.girardsimon.wealthpay.account.domain.model.AccountId;
 import org.girardsimon.wealthpay.account.domain.model.Money;
+import org.girardsimon.wealthpay.account.domain.model.SupportedCurrency;
 import org.girardsimon.wealthpay.account.infrastructure.db.record.EventStoreEntry;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -14,7 +15,6 @@ import org.springframework.stereotype.Component;
 
 import java.math.BigDecimal;
 import java.time.Instant;
-import java.util.Currency;
 import java.util.function.Function;
 
 @Component
@@ -42,7 +42,7 @@ public class EventStoreEntryToAccountEventMapper implements Function<EventStoreE
         try {
             JsonNode root = objectMapper.readTree(eventStoreEntry.payload().data());
 
-            Currency currency = Currency.getInstance(root.get("currency").asText());
+            SupportedCurrency currency = SupportedCurrency.valueOf(root.get("currency").asText());
             BigDecimal amount = root.get("initialBalance").decimalValue();
 
             return new AccountOpened(

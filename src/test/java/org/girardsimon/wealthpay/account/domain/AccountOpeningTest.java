@@ -9,11 +9,11 @@ import org.girardsimon.wealthpay.account.domain.model.Account;
 import org.girardsimon.wealthpay.account.domain.model.AccountId;
 import org.girardsimon.wealthpay.account.domain.model.AccountStatus;
 import org.girardsimon.wealthpay.account.domain.model.Money;
+import org.girardsimon.wealthpay.account.domain.model.SupportedCurrency;
 import org.junit.jupiter.api.Test;
 
 import java.math.BigDecimal;
 import java.time.Instant;
-import java.util.Currency;
 import java.util.List;
 
 import static org.assertj.core.api.Assertions.assertThat;
@@ -26,12 +26,12 @@ class AccountOpeningTest {
     void openAccountCommand_produces_accountOpenedEvent() {
         // Arrange
         AccountId accountId = AccountId.newId();
-        Currency currency = Currency.getInstance("USD");
+        SupportedCurrency currency = SupportedCurrency.USD;
         Money initialBalance = Money.of(BigDecimal.valueOf(10L), currency);
-        OpenAccount openAccount = new OpenAccount(initialBalance, currency);
+        OpenAccount openAccount = new OpenAccount(currency, initialBalance);
 
         // Act
-        List<AccountEvent> events = Account.handle(openAccount, accountId, Instant.now());
+        List<AccountEvent> events = Account.handle(openAccount, accountId, 1L, Instant.now());
         Account account = Account.rehydrate(events);
 
         // Assert
@@ -50,42 +50,42 @@ class AccountOpeningTest {
     void openAccountCommand_requires_initial_balance_in_same_currency_as_currency_of_account() {
         // Arrange
         AccountId accountId = AccountId.newId();
-        Currency usd = Currency.getInstance("USD");
-        Currency eur = Currency.getInstance("EUR");
+        SupportedCurrency usd = SupportedCurrency.USD;
+        SupportedCurrency eur = SupportedCurrency.EUR;
         Money initialBalance = Money.of(BigDecimal.valueOf(10L), usd);
-        OpenAccount openAccount = new OpenAccount(initialBalance, eur);
+        OpenAccount openAccount = new OpenAccount(eur, initialBalance);
 
         // Act ... Assert
         Instant occurredAt = Instant.now();
         assertThatExceptionOfType(AccountCurrencyMismatchException.class)
-            .isThrownBy(() -> Account.handle(openAccount, accountId, occurredAt));
+            .isThrownBy(() -> Account.handle(openAccount, accountId, 1L, occurredAt));
     }
 
     @Test
     void openAccountCommand_does_not_permit_negative_initial_balance() {
         // Arrange
         AccountId accountId = AccountId.newId();
-        Currency currency = Currency.getInstance("USD");
+        SupportedCurrency currency = SupportedCurrency.USD;
         Money initialBalance = Money.of(BigDecimal.valueOf(-10L), currency);
-        OpenAccount openAccount = new OpenAccount(initialBalance, currency);
+        OpenAccount openAccount = new OpenAccount(currency, initialBalance);
 
         // Act ... Assert
         Instant occurredAt = Instant.now();
         assertThatExceptionOfType(InvalidInitialBalanceException.class)
-                .isThrownBy(() -> Account.handle(openAccount, accountId, occurredAt));
+                .isThrownBy(() -> Account.handle(openAccount, accountId, 1L, occurredAt));
     }
 
     @Test
     void openAccountCommand_does_not_permit_zero_initial_balance() {
         // Arrange
         AccountId accountId = AccountId.newId();
-        Currency currency = Currency.getInstance("USD");
+        SupportedCurrency currency = SupportedCurrency.USD;
         Money initialBalance = Money.of(BigDecimal.ZERO, currency);
-        OpenAccount openAccount = new OpenAccount(initialBalance, currency);
+        OpenAccount openAccount = new OpenAccount(currency, initialBalance);
 
         // Act ... Assert
         Instant occurredAt = Instant.now();
         assertThatExceptionOfType(InvalidInitialBalanceException.class)
-                .isThrownBy(() -> Account.handle(openAccount, accountId, occurredAt));
+                .isThrownBy(() -> Account.handle(openAccount, accountId, 1L, occurredAt));
     }
 }

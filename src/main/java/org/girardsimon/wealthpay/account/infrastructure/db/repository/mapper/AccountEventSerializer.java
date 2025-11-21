@@ -42,9 +42,9 @@ public class AccountEventSerializer implements Function<AccountEvent, JSONB> {
 
     private JSONB mapAccountOpenedPayload(AccountOpened accountOpened) {
         ObjectNode root = objectMapper.createObjectNode();
-        root.put("currency", accountOpened.currency().getCurrencyCode());
-        root.put("initialBalance", accountOpened.initialBalance().amount());
-        root.put("occurredAt", accountOpened.occurredAt().toString());
+        root.putPOJO("currency", accountOpened.currency().name());
+        root.putPOJO("initialBalance", accountOpened.initialBalance().amount());
+        root.putPOJO("occurredAt", accountOpened.occurredAt().toString());
         try {
             String jsonString = objectMapper.writeValueAsString(root);
             return JSONB.valueOf(jsonString);

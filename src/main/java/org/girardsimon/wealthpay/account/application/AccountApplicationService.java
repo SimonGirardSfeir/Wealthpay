@@ -2,6 +2,7 @@ package org.girardsimon.wealthpay.account.application;
 
 import org.girardsimon.wealthpay.account.domain.command.OpenAccount;
 import org.girardsimon.wealthpay.account.domain.event.AccountEvent;
+import org.girardsimon.wealthpay.account.domain.exception.AccountAlreadyExistsException;
 import org.girardsimon.wealthpay.account.domain.model.Account;
 import org.girardsimon.wealthpay.account.domain.model.AccountId;
 import org.girardsimon.wealthpay.account.domain.model.AccountIdGenerator;
@@ -30,11 +31,13 @@ public class AccountApplicationService {
         AccountId accountId = accountIdGenerator.newId();
         List<AccountEvent> history = accountEventStore.loadEvents(accountId);
         if(!history.isEmpty()) {
-            throw new IllegalStateException("Account %s already exists".formatted(accountId));
+            throw new AccountAlreadyExistsException(accountId);
         }
 
-        List<AccountEvent> createdAccountEvents = Account.handle(openAccount, accountId, Instant.now(clock));
-        accountEventStore.appendEvents(accountId, 0L, createdAccountEvents);
+        long expectedVersion = 0L;
+        long nextVersion = expectedVersion + 1;
+        List<AccountEvent> createdAccountEvents = Account.handle(openAccount, accountId, nextVersion, Instant.now(clock));
+        accountEventStore.appendEvents(accountId, expectedVersion, createdAccountEvents);
         return accountId;
     }
 }
