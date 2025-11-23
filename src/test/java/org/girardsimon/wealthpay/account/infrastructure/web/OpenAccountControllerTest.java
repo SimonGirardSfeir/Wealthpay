@@ -1,11 +1,15 @@
 package org.girardsimon.wealthpay.account.infrastructure.web;
 
 import com.fasterxml.jackson.databind.ObjectMapper;
+import org.girardsimon.wealthpay.account.api.generated.model.AccountResponseDto;
+import org.girardsimon.wealthpay.account.api.generated.model.AccountStatusDto;
 import org.girardsimon.wealthpay.account.api.generated.model.OpenAccountRequestDto;
 import org.girardsimon.wealthpay.account.api.generated.model.SupportedCurrencyDto;
 import org.girardsimon.wealthpay.account.application.AccountApplicationService;
+import org.girardsimon.wealthpay.account.application.view.AccountBalanceView;
 import org.girardsimon.wealthpay.account.domain.command.OpenAccount;
 import org.girardsimon.wealthpay.account.domain.model.AccountId;
+import org.girardsimon.wealthpay.account.infrastructure.web.mapper.AccountBalanceViewDomainToDtoMapper;
 import org.girardsimon.wealthpay.account.infrastructure.web.mapper.OpenAccountDtoToDomainMapper;
 import org.girardsimon.wealthpay.shared.infrastructure.web.GlobalExceptionHandler;
 import org.junit.jupiter.api.Test;
@@ -18,9 +22,11 @@ import org.springframework.test.web.servlet.MockMvc;
 
 import java.math.BigDecimal;
 import java.math.RoundingMode;
+import java.util.UUID;
 
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.when;
+import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.get;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.post;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.header;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.jsonPath;
@@ -35,6 +41,9 @@ class OpenAccountControllerTest {
 
     @MockitoBean
     OpenAccountDtoToDomainMapper openAccountDtoToDomainMapper;
+
+    @MockitoBean
+    AccountBalanceViewDomainToDtoMapper accountBalanceViewDomainToDtoMapper;
 
     @Autowired
     MockMvc mockMvc;
@@ -71,6 +80,7 @@ class OpenAccountControllerTest {
                 .initialAmount(BigDecimal.valueOf(-100.50).setScale(2, RoundingMode.HALF_UP))
                 .initialAmountCurrency(SupportedCurrencyDto.USD);
 
+        // Act ... Assert
         mockMvc.perform(post("/accounts")
                         .contentType(MediaType.APPLICATION_JSON)
                         .content(objectMapper.writeValueAsString(openAccountRequestDto)))
@@ -81,5 +91,28 @@ class OpenAccountControllerTest {
                 .andExpect(jsonPath("$.errors[0].message").value("must be greater than or equal to 0"))
                 .andExpect(jsonPath("$.errors[0].code").value("DecimalMin"))
                 .andExpect(jsonPath("$.errors[0].rejectedValue").value("-100.50"));
+    }
+
+    @Test
+    void getAccountById_should_return_200_with_account_response() throws Exception {
+        // Arrange
+        UUID accountId = UUID.randomUUID();
+        AccountBalanceView accountBalanceView = mock(AccountBalanceView.class);
+        when(accountApplicationService.getAccountBalance(accountId)).thenReturn(accountBalanceView);
+        when(accountBalanceViewDomainToDtoMapper.apply(accountBalanceView)).thenReturn(new AccountResponseDto()
+                .id(accountId)
+                .balance(BigDecimal.valueOf(100.50))
+                .currency(SupportedCurrencyDto.USD)
+                .status(AccountStatusDto.OPENED));
+
+        // Act ... Assert
+        mockMvc.perform(get("/accounts/{id}", accountId)
+                        .contentType(MediaType.APPLICATION_JSON))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.id").value(accountId.toString()))
+                .andExpect(jsonPath("$.balance").value("100.5"))
+                .andExpect(jsonPath("$.currency").value("USD"))
+                .andExpect(jsonPath("$.status").value("OPENED"));
+
     }
 }

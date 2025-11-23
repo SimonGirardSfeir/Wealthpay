@@ -94,7 +94,7 @@ class AccountClosingTest {
     }
 
     @Test
-    void closeAccount_requires_account_to_be_active() {
+    void closeAccount_requires_account_to_be_opened() {
         // Arrange
         AccountId accountId = AccountId.newId();
         SupportedCurrency currency = SupportedCurrency.USD;

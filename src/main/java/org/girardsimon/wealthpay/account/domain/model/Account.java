@@ -131,7 +131,8 @@ public class Account {
                 cancelReservation.accountId(),
                 occurredAt,
                 this.version + 1,
-                cancelReservation.reservationId()
+                cancelReservation.reservationId(),
+                this.reservations.get(cancelReservation.reservationId())
         );
         return List.of(reservationCancelled);
     }
@@ -163,7 +164,7 @@ public class Account {
     }
 
     private void ensureActive() {
-        if(this.status != AccountStatus.ACTIVE) {
+        if(this.status != AccountStatus.OPENED) {
             throw new AccountInactiveException();
         }
     }
@@ -187,7 +188,7 @@ public class Account {
         switch (accountEvent) {
             case AccountOpened accountOpened -> {
                 this.balance = accountOpened.initialBalance();
-                this.status = AccountStatus.ACTIVE;
+                this.status = AccountStatus.OPENED;
             }
             case FundsCredited fundsCredited -> this.balance = this.balance.add(fundsCredited.amount());
             case AccountClosed _ -> this.status = AccountStatus.CLOSED;

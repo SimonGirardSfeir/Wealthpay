@@ -36,9 +36,7 @@ import static org.junit.jupiter.api.Assertions.assertAll;
         AccountEventSerializer.class,
         ObjectMapper.class
 })
-class AccountEventRepositoryTest extends AbstractContainerTest{
-
-
+class AccountEventRepositoryTest extends AbstractContainerTest {
 
     @Autowired
     private DSLContext dsl;

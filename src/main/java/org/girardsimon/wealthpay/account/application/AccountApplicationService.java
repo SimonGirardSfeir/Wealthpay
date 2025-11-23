@@ -1,5 +1,6 @@
 package org.girardsimon.wealthpay.account.application;
 
+import org.girardsimon.wealthpay.account.application.view.AccountBalanceView;
 import org.girardsimon.wealthpay.account.domain.command.OpenAccount;
 import org.girardsimon.wealthpay.account.domain.event.AccountEvent;
 import org.girardsimon.wealthpay.account.domain.exception.AccountAlreadyExistsException;
@@ -12,16 +13,19 @@ import org.springframework.transaction.annotation.Transactional;
 import java.time.Clock;
 import java.time.Instant;
 import java.util.List;
+import java.util.UUID;
 
 @Service
 public class AccountApplicationService {
 
     private final AccountEventStore accountEventStore;
+    private final AccountBalanceProjector accountBalanceProjector;
     private final Clock clock;
     private final AccountIdGenerator accountIdGenerator;
 
-    public AccountApplicationService(AccountEventStore accountEventStore, Clock clock, AccountIdGenerator accountIdGenerator) {
+    public AccountApplicationService(AccountEventStore accountEventStore, AccountBalanceProjector accountBalanceProjector, Clock clock, AccountIdGenerator accountIdGenerator) {
         this.accountEventStore = accountEventStore;
+        this.accountBalanceProjector = accountBalanceProjector;
         this.clock = clock;
         this.accountIdGenerator = accountIdGenerator;
     }
@@ -38,6 +42,12 @@ public class AccountApplicationService {
         long nextVersion = expectedVersion + 1;
         List<AccountEvent> createdAccountEvents = Account.handle(openAccount, accountId, nextVersion, Instant.now(clock));
         accountEventStore.appendEvents(accountId, expectedVersion, createdAccountEvents);
+        accountBalanceProjector.project(createdAccountEvents);
         return accountId;
+    }
+
+    @Transactional(readOnly = true)
+    public AccountBalanceView getAccountBalance(UUID accountId) {
+        return accountBalanceProjector.getAccountBalance(accountId);
     }
 }

@@ -5,8 +5,10 @@ import org.girardsimon.wealthpay.account.api.generated.model.AccountResponseDto;
 import org.girardsimon.wealthpay.account.api.generated.model.OpenAccountRequestDto;
 import org.girardsimon.wealthpay.account.api.generated.model.OpenAccountResponseDto;
 import org.girardsimon.wealthpay.account.application.AccountApplicationService;
+import org.girardsimon.wealthpay.account.application.view.AccountBalanceView;
 import org.girardsimon.wealthpay.account.domain.command.OpenAccount;
 import org.girardsimon.wealthpay.account.domain.model.AccountId;
+import org.girardsimon.wealthpay.account.infrastructure.web.mapper.AccountBalanceViewDomainToDtoMapper;
 import org.girardsimon.wealthpay.account.infrastructure.web.mapper.OpenAccountDtoToDomainMapper;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.RestController;
@@ -21,15 +23,18 @@ public class OpenAccountController implements AccountsApi {
     private final AccountApplicationService accountApplicationService;
 
     private final OpenAccountDtoToDomainMapper openAccountDtoToDomainMapper;
+    private final AccountBalanceViewDomainToDtoMapper accountBalanceViewDomainToDtoMapper;
 
-    public OpenAccountController(AccountApplicationService accountApplicationService, OpenAccountDtoToDomainMapper openAccountDtoToDomainMapper) {
+    public OpenAccountController(AccountApplicationService accountApplicationService, OpenAccountDtoToDomainMapper openAccountDtoToDomainMapper, AccountBalanceViewDomainToDtoMapper accountBalanceViewDomainToDtoMapper) {
         this.accountApplicationService = accountApplicationService;
         this.openAccountDtoToDomainMapper = openAccountDtoToDomainMapper;
+        this.accountBalanceViewDomainToDtoMapper = accountBalanceViewDomainToDtoMapper;
     }
 
     @Override
     public ResponseEntity<AccountResponseDto> getAccountById(UUID id) {
-        return null;
+        AccountBalanceView accountBalance = accountApplicationService.getAccountBalance(id);
+        return ResponseEntity.ok(accountBalanceViewDomainToDtoMapper.apply(accountBalance));
     }
 
     @Override

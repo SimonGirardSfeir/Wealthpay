@@ -40,7 +40,7 @@ class AccountOpeningTest {
                 () -> assertThat(events.getFirst()).isInstanceOf(AccountOpened.class),
                 () -> assertThat(account.getId()).isEqualTo(accountId),
                 () -> assertThat(account.getCurrency()).isEqualTo(currency),
-                () -> assertThat(account.getStatus()).isEqualTo(AccountStatus.ACTIVE),
+                () -> assertThat(account.getStatus()).isEqualTo(AccountStatus.OPENED),
                 () -> assertThat(account.getBalance()).isEqualTo(initialBalance),
                 () -> assertThat(account.getVersion()).isEqualTo(1L)
         );

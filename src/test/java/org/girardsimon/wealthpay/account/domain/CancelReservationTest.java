@@ -67,7 +67,7 @@ class CancelReservationTest {
                 () -> assertThat(accountAfterCancellation.getBalance()).isEqualTo(initialBalance),
                 () -> assertThat(accountAfterCancellation.getAvailableBalance()).isEqualTo(initialBalance),
                 () -> assertThat(accountAfterCancellation.getReservations()).isEmpty(),
-                () -> assertThat(accountAfterCancellation.getStatus()).isEqualTo(AccountStatus.ACTIVE),
+                () -> assertThat(accountAfterCancellation.getStatus()).isEqualTo(AccountStatus.OPENED),
                 () -> assertThat(accountAfterCancellation.getVersion()).isEqualTo(3L)
         );
     }
@@ -137,7 +137,7 @@ class CancelReservationTest {
     }
 
     @Test
-    void cancelReservation_requires_account_to_be_active() {
+    void cancelReservation_requires_account_to_be_opened() {
         // Arrange
         AccountId accountId = AccountId.newId();
         SupportedCurrency usd = SupportedCurrency.USD;

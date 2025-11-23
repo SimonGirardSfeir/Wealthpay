@@ -3,9 +3,9 @@ package org.girardsimon.wealthpay.account.infrastructure.db.repository;
 import org.girardsimon.wealthpay.account.application.AccountEventStore;
 import org.girardsimon.wealthpay.account.domain.event.AccountEvent;
 import org.girardsimon.wealthpay.account.domain.model.AccountId;
-import org.girardsimon.wealthpay.account.infrastructure.db.record.EventStoreEntry;
 import org.girardsimon.wealthpay.account.infrastructure.db.repository.mapper.AccountEventSerializer;
 import org.girardsimon.wealthpay.account.infrastructure.db.repository.mapper.EventStoreEntryToAccountEventMapper;
+import org.girardsimon.wealthpay.account.jooq.tables.pojos.EventStore;
 import org.jooq.DSLContext;
 import org.jooq.JSONB;
 import org.springframework.dao.DataIntegrityViolationException;
@@ -38,7 +38,7 @@ public class AccountEventRepository implements AccountEventStore {
     public List<AccountEvent> loadEvents(AccountId accountId) {
         UUID accountUuid = accountId.id();
 
-        List<EventStoreEntry> rows = dslContext.select(
+        List<EventStore> rows = dslContext.select(
                         EVENT_STORE.ID,
                         EVENT_STORE.ACCOUNT_ID,
                         EVENT_STORE.VERSION,
@@ -49,7 +49,7 @@ public class AccountEventRepository implements AccountEventStore {
                 .from(EVENT_STORE)
                 .where(EVENT_STORE.ACCOUNT_ID.eq(accountUuid))
                 .orderBy(EVENT_STORE.VERSION.asc())
-                .fetchInto(EventStoreEntry.class);
+                .fetchInto(EventStore.class);
 
         return rows.stream()
                 .map(eventStoreEntryToAccountEventMapper)
@@ -58,7 +58,7 @@ public class AccountEventRepository implements AccountEventStore {
 
     @Override
     public void appendEvents(AccountId accountId, long expectedVersion, List<AccountEvent> events) {
-        if (events == null || events.isEmpty()) {
+        if (events.isEmpty()) {
             return;
         }
 

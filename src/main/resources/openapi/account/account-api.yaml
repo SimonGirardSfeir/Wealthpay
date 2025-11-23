@@ -92,9 +92,17 @@ components:
           format: uuid
         currency:
           $ref: '#/components/schemas/SupportedCurrency'
+          description: Currency of the account
         balance:
           type: number
-          format: double
+          description: Current balance of the account
+        reservedAmount:
+          type: number
+          description: Amount reserved for future operations
+        status:
+          $ref: '#/components/schemas/AccountStatus'
+          description: Current status of the account
+
 
     SupportedCurrency:
       type: string
@@ -126,3 +134,10 @@ components:
         - TRY
         - TWD
         - ZAR
+
+    AccountStatus:
+      type: string
+      description: Current status of the account
+      enum:
+        - OPENED
+        - CLOSED

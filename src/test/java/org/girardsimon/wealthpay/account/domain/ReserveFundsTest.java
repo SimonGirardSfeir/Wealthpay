@@ -59,7 +59,7 @@ class ReserveFundsTest {
                 () -> assertThat(accountAfterReservation.getBalance()).isEqualTo(initialBalance),
                 () -> assertThat(accountAfterReservation.getAvailableBalance()).isEqualTo(expectedBalance),
                 () -> assertThat(accountAfterReservation.getReservations()).containsEntry(reservationId, reservationAmount),
-                () -> assertThat(accountAfterReservation.getStatus()).isEqualTo(AccountStatus.ACTIVE),
+                () -> assertThat(accountAfterReservation.getStatus()).isEqualTo(AccountStatus.OPENED),
                 () -> assertThat(accountAfterReservation.getVersion()).isEqualTo(2L)
         );
     }
@@ -139,7 +139,7 @@ class ReserveFundsTest {
     }
 
     @Test
-    void reserveFunds_requires_account_to_be_active() {
+    void reserveFunds_requires_account_to_be_opened() {
         // Arrange
         AccountId accountId = AccountId.newId();
         SupportedCurrency usd = SupportedCurrency.USD;

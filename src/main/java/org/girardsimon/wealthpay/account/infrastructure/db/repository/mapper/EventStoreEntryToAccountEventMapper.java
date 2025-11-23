@@ -8,7 +8,7 @@ import org.girardsimon.wealthpay.account.domain.event.AccountOpened;
 import org.girardsimon.wealthpay.account.domain.model.AccountId;
 import org.girardsimon.wealthpay.account.domain.model.Money;
 import org.girardsimon.wealthpay.account.domain.model.SupportedCurrency;
-import org.girardsimon.wealthpay.account.infrastructure.db.record.EventStoreEntry;
+import org.girardsimon.wealthpay.account.jooq.tables.pojos.EventStore;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.stereotype.Component;
@@ -18,7 +18,7 @@ import java.time.Instant;
 import java.util.function.Function;
 
 @Component
-public class EventStoreEntryToAccountEventMapper implements Function<EventStoreEntry, AccountEvent> {
+public class EventStoreEntryToAccountEventMapper implements Function<EventStore, AccountEvent> {
 
     private static final Logger log = LoggerFactory.getLogger(EventStoreEntryToAccountEventMapper.class);
 
@@ -29,26 +29,26 @@ public class EventStoreEntryToAccountEventMapper implements Function<EventStoreE
     }
 
     @Override
-    public AccountEvent apply(EventStoreEntry eventStoreEntry) {
-        String eventType = eventStoreEntry.eventType();
+    public AccountEvent apply(EventStore eventStore) {
+        String eventType = eventStore.getEventType();
 
         return switch (eventType) {
-            case "AccountOpened" -> mapAccountOpened(eventStoreEntry);
+            case "AccountOpened" -> mapAccountOpened(eventStore);
             default -> throw new IllegalArgumentException("Unknown event type: " + eventType);
         };
     }
 
-    private AccountOpened mapAccountOpened(EventStoreEntry eventStoreEntry) {
+    private AccountOpened mapAccountOpened(EventStore eventStore) {
         try {
-            JsonNode root = objectMapper.readTree(eventStoreEntry.payload().data());
+            JsonNode root = objectMapper.readTree(eventStore.getPayload().data());
 
             SupportedCurrency currency = SupportedCurrency.valueOf(root.get("currency").asText());
             BigDecimal amount = root.get("initialBalance").decimalValue();
 
             return new AccountOpened(
-                    AccountId.of(eventStoreEntry.accountId()),
+                    AccountId.of(eventStore.getAccountId()),
                     Instant.parse(root.get("occurredAt").asText()),
-                    eventStoreEntry.version(),
+                    eventStore.getVersion(),
                     currency,
                     Money.of(amount, currency)
             );

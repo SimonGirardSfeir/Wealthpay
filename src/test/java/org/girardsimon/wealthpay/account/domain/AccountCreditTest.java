@@ -53,7 +53,7 @@ class AccountCreditTest {
                 () -> assertThat(allEvents.getLast()).isInstanceOf(FundsCredited.class),
                 () -> assertThat(allEvents.getLast().version()).isEqualTo(2L),
                 () -> assertThat(accountAfterCredit.getBalance()).isEqualTo(expectedBalance),
-                () -> assertThat(accountAfterCredit.getStatus()).isEqualTo(AccountStatus.ACTIVE),
+                () -> assertThat(accountAfterCredit.getStatus()).isEqualTo(AccountStatus.OPENED),
                 () -> assertThat(accountAfterCredit.getVersion()).isEqualTo(2L)
         );
     }
@@ -130,7 +130,7 @@ class AccountCreditTest {
     }
 
     @Test
-    void creditAccount_requires_account_to_be_active() {
+    void creditAccount_requires_account_to_be_opened() {
         // Arrange
         AccountId accountId = AccountId.newId();
         SupportedCurrency usd = SupportedCurrency.USD;
