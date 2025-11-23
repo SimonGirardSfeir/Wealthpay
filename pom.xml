@@ -37,6 +37,7 @@
         <maven-dependency-plugin.version>3.9.0</maven-dependency-plugin.version>
         <jooq-codegen-maven.version>3.19.27</jooq-codegen-maven.version>
         <build-helper-maven-plugin.version>3.6.1</build-helper-maven-plugin.version>
+        <sonar.organization>simongirardsfeir</sonar.organization>
     </properties>
     <dependencies>
         <dependency>
@@ -282,8 +283,8 @@
                                     <jdbc>
                                         <driver>org.postgresql.Driver</driver>
                                         <url>jdbc:postgresql://localhost:5432/wealthpay</url>
-                                        <user>user</user>
-                                        <password>password</password>
+                                        <user>${env.DB_USER}</user>
+                                        <password>${env.DB_PASSWORD}</password>
                                     </jdbc>
                                     <generator>
                                         <name>org.jooq.codegen.JavaGenerator</name>
