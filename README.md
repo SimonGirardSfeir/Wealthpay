@@ -48,6 +48,70 @@ The goal is to build a fully consistent and testable domain for account operatio
 
 ---
 
+---
+
+## 🛠 Local Development Workflow
+
+This project uses PostgreSQL (via `docker-compose`), Flyway (automatic schema migrations), and jOOQ (type-safe SQL with code generation).
+
+Follow this workflow when you clone the project or when database changes occur.
+
+### 1. Start PostgreSQL (Docker)
+
+Use the provided `docker-compose.yml`:
+
+```bash
+docker-compose up -d
+```
+
+### 2. Apply Flyway migrations
+
+Flyway is executed automatically when Spring Boot starts.
+
+Run the application once:
+
+```bash
+mvn spring-boot:run
+```
+
+This will:
+•	connect to the local PostgreSQL instance
+•	apply all Flyway migrations
+•	create/update the account schema
+
+You can stop the application once the startup completes.
+
+### 3. Generate jOOQ classes
+
+(only when the database schema changes)
+
+jOOQ code generation is not part of the default Maven lifecycle because it requires a live PostgreSQL database.
+
+After applying new Flyway migrations, regenerate the jOOQ classes with:
+
+```bash
+mvn -Pjooq-codegen-local clean generate-sources
+```
+
+This updates the generated sources under:
+
+```bash
+src/main/generated-jooq/
+```
+
+These files are versioned so that CI and other developers can build the project without needing to run jOOQ codegen.
+
+### 4. Build the project
+
+Once the jOOQ sources exist (generated locally or pulled from Git):
+
+```bash
+mvn clean install
+```
+
+No running database is required for this step.
+
+
 ## 🌐 REST API
 
 The contract is defined **OpenAPI-first**, and DTOs/interfaces are code-generated using OpenAPI Generator.
