@@ -8,7 +8,6 @@ import org.girardsimon.wealthpay.account.domain.event.FundsReserved;
 import org.girardsimon.wealthpay.account.domain.event.ReservationCancelled;
 import org.girardsimon.wealthpay.account.domain.exception.AccountIdMismatchException;
 import org.girardsimon.wealthpay.account.domain.exception.AccountInactiveException;
-import org.girardsimon.wealthpay.account.domain.exception.ReservationNotFoundException;
 import org.girardsimon.wealthpay.account.domain.model.Account;
 import org.girardsimon.wealthpay.account.domain.model.AccountId;
 import org.girardsimon.wealthpay.account.domain.model.AccountStatus;
@@ -97,11 +96,13 @@ class CancelReservationTest {
         List<AccountEvent> initEvents = List.of(opened, fundsReserved);
         Account account = Account.rehydrate(initEvents);
         CancelReservation cancelReservation = new CancelReservation(accountId, ReservationId.newId());
-
-        // Act ... Assert
         Instant occurredAt = Instant.now();
-        assertThatExceptionOfType(ReservationNotFoundException.class)
-                .isThrownBy(() -> account.handle(cancelReservation, occurredAt));
+
+        // Act
+        List<AccountEvent> accountEvents = account.handle(cancelReservation, occurredAt);
+
+        // Assert
+        assertThat(accountEvents).isEmpty();
     }
 
     @Test

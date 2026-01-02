@@ -11,7 +11,7 @@ import org.girardsimon.wealthpay.account.domain.exception.AmountMustBePositiveEx
 import org.girardsimon.wealthpay.account.domain.exception.InsufficientFundsException;
 import org.girardsimon.wealthpay.account.domain.exception.InvalidAccountEventStreamException;
 import org.girardsimon.wealthpay.account.domain.exception.InvalidInitialBalanceException;
-import org.girardsimon.wealthpay.account.domain.exception.ReservationAlreadyExistsException;
+import org.girardsimon.wealthpay.account.domain.exception.ReservationConflictException;
 import org.girardsimon.wealthpay.account.domain.exception.ReservationNotFoundException;
 import org.girardsimon.wealthpay.account.domain.exception.UnsupportedCurrencyException;
 import org.girardsimon.wealthpay.shared.api.generated.model.ApiErrorDto;
@@ -69,7 +69,7 @@ public class AccountExceptionHandler {
             AccountCurrencyMismatchException.class,
             AmountMustBePositiveException.class,
             InsufficientFundsException.class,
-            ReservationAlreadyExistsException.class,
+            ReservationConflictException.class,
             AccountNotEmptyException.class,
             UnsupportedCurrencyException.class
     })

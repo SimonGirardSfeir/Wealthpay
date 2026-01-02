@@ -12,7 +12,7 @@ import org.girardsimon.wealthpay.account.domain.exception.AccountIdMismatchExcep
 import org.girardsimon.wealthpay.account.domain.exception.AccountInactiveException;
 import org.girardsimon.wealthpay.account.domain.exception.AmountMustBePositiveException;
 import org.girardsimon.wealthpay.account.domain.exception.InsufficientFundsException;
-import org.girardsimon.wealthpay.account.domain.exception.ReservationAlreadyExistsException;
+import org.girardsimon.wealthpay.account.domain.exception.ReservationConflictException;
 import org.girardsimon.wealthpay.account.domain.model.Account;
 import org.girardsimon.wealthpay.account.domain.model.AccountId;
 import org.girardsimon.wealthpay.account.domain.model.AccountStatus;
@@ -206,7 +206,7 @@ class ReserveFundsTest {
     }
 
     @Test
-    void reserveFunds_should_throw_exception_if_reservationId_already_exists() {
+    void reserveFunds_should_throw_exception_in_case_of_conflict() {
         // Arrange
         AccountId accountId = AccountId.newId();
         SupportedCurrency usd = SupportedCurrency.USD;
@@ -227,13 +227,46 @@ class ReserveFundsTest {
                 reservationId,
                 firstReservedAmount
         );
-        Account closedAccount = Account.rehydrate(List.of(opened, fundsReserved));
-        Money reservedAmount = Money.of(BigDecimal.valueOf(10L), usd);
-        ReserveFunds reserveFunds = new ReserveFunds(accountId, reservationId, reservedAmount);
+        Account account = Account.rehydrate(List.of(opened, fundsReserved));
+        Money newReservedAmount = Money.of(BigDecimal.valueOf(10L), usd);
+        ReserveFunds reserveFunds = new ReserveFunds(accountId, reservationId, newReservedAmount);
 
         // Act ... Assert
         Instant occurredAt = Instant.now();
-        assertThatExceptionOfType(ReservationAlreadyExistsException.class)
-                .isThrownBy(() -> closedAccount.handle(reserveFunds, occurredAt));
+        assertThatExceptionOfType(ReservationConflictException.class)
+                .isThrownBy(() -> account.handle(reserveFunds, occurredAt));
+    }
+
+    @Test
+    void reserveFunds_should_return_no_event_if_reservation_done_twice() {
+        // Arrange
+        AccountId accountId = AccountId.newId();
+        SupportedCurrency usd = SupportedCurrency.USD;
+        Money initialBalance = Money.of(BigDecimal.valueOf(100L), usd);
+        AccountOpened opened = new AccountOpened(
+                accountId,
+                Instant.now(),
+                1L,
+                usd,
+                initialBalance
+        );
+        Money reservedAmount = Money.of(BigDecimal.valueOf(60L), usd);
+        ReservationId reservationId = ReservationId.newId();
+        FundsReserved fundsReserved = new FundsReserved(
+                accountId,
+                Instant.now(),
+                2L,
+                reservationId,
+                reservedAmount
+        );
+        Account account = Account.rehydrate(List.of(opened, fundsReserved));
+        ReserveFunds reserveFunds = new ReserveFunds(accountId, reservationId, reservedAmount);
+        Instant occurredAt = Instant.now();
+
+        // Act
+        List<AccountEvent> accountEvents = account.handle(reserveFunds, occurredAt);
+
+        // Assert
+        assertThat(accountEvents).isEmpty();
     }
 }

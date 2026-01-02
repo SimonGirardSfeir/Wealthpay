@@ -6,13 +6,13 @@ import java.math.RoundingMode;
 public record Money(BigDecimal amount, SupportedCurrency currency) {
     public Money {
         if(amount == null || currency == null) {
-            throw new IllegalArgumentException("amount and currency must not be null");
+            throw new IllegalArgumentException("money and currency must not be null");
         }
     }
 
     public static Money of(BigDecimal amount, SupportedCurrency currency) {
         if(amount == null || currency == null) {
-            throw new IllegalArgumentException("amount and currency must not be null");
+            throw new IllegalArgumentException("money and currency must not be null");
         }
         int defaultFractionDigits = currency.toJavaCurrency()
                 .getDefaultFractionDigits();

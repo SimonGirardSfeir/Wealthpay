@@ -22,8 +22,7 @@ import org.girardsimon.wealthpay.account.domain.exception.AmountMustBePositiveEx
 import org.girardsimon.wealthpay.account.domain.exception.InsufficientFundsException;
 import org.girardsimon.wealthpay.account.domain.exception.InvalidAccountEventStreamException;
 import org.girardsimon.wealthpay.account.domain.exception.InvalidInitialBalanceException;
-import org.girardsimon.wealthpay.account.domain.exception.ReservationAlreadyExistsException;
-import org.girardsimon.wealthpay.account.domain.exception.ReservationNotFoundException;
+import org.girardsimon.wealthpay.account.domain.exception.ReservationConflictException;
 
 import java.time.Instant;
 import java.util.HashMap;
@@ -88,7 +87,7 @@ public class Account {
         checkCurrencyConsistency(debitAccount.amount().currency());
         checkStrictlyPositiveAmount(debitAccount.amount());
         ensureActive();
-        if(debitAccount.amount().isGreaterThan(this.balance)) {
+        if(debitAccount.amount().isGreaterThan(getAvailableBalance())) {
             throw new InsufficientFundsException();
         }
         FundsDebited fundsDebited = new FundsDebited(
@@ -102,31 +101,36 @@ public class Account {
 
     public List<AccountEvent> handle(ReserveFunds reserveFunds, Instant occurredAt) {
         ensureAccountIdConsistency(reserveFunds.accountId());
-        checkCurrencyConsistency(reserveFunds.amount().currency());
-        checkStrictlyPositiveAmount(reserveFunds.amount());
+        checkCurrencyConsistency(reserveFunds.money().currency());
+        checkStrictlyPositiveAmount(reserveFunds.money());
         ensureActive();
-        if(reserveFunds.amount().isGreaterThan(getAvailableBalance())) {
-            throw new InsufficientFundsException();
+
+        Money existing = this.reservations.get(reserveFunds.reservationId());
+        if(existing != null) {
+            if(existing.equals(reserveFunds.money())) {
+                return List.of();
+            }
+            throw new ReservationConflictException(reserveFunds.reservationId(), existing, reserveFunds.money());
         }
-        if(this.reservations.containsKey(reserveFunds.reservationId())) {
-            throw new ReservationAlreadyExistsException(reserveFunds.reservationId());
+        if(reserveFunds.money().isGreaterThan(getAvailableBalance())) {
+            throw new InsufficientFundsException();
         }
         FundsReserved fundsReserved = new FundsReserved(
                 reserveFunds.accountId(),
                 occurredAt,
                 this.version + 1,
                 reserveFunds.reservationId(),
-                reserveFunds.amount()
+                reserveFunds.money()
         );
         return List.of(fundsReserved);
     }
 
     public List<AccountEvent> handle(CancelReservation cancelReservation, Instant occurredAt) {
         ensureAccountIdConsistency(cancelReservation.accountId());
-        if(!this.reservations.containsKey(cancelReservation.reservationId())) {
-            throw new ReservationNotFoundException(cancelReservation.reservationId());
-        }
         ensureActive();
+        if(!this.reservations.containsKey(cancelReservation.reservationId())) {
+            return List.of();
+        }
         ReservationCancelled reservationCancelled = new ReservationCancelled(
                 cancelReservation.accountId(),
                 occurredAt,
@@ -140,7 +144,7 @@ public class Account {
     public List<AccountEvent> handle(CloseAccount closeAccount, Instant occurredAt) {
         ensureAccountIdConsistency(closeAccount.accountId());
         ensureActive();
-        if(!this.balance.isAmountZero()) {
+        if(!this.balance.isAmountZero() || !this.reservations.isEmpty()) {
             throw new AccountNotEmptyException();
         }
         AccountClosed accountClosed = new AccountClosed(
@@ -229,6 +233,6 @@ public class Account {
     }
 
     public Map<ReservationId, Money> getReservations() {
-        return reservations;
+        return Map.copyOf(reservations);
     }
 }

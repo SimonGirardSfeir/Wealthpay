@@ -63,7 +63,7 @@ components:
           $ref: '#/components/schemas/SupportedCurrency'
         initialAmount:
           type: number
-          description: Initial amount credited when opening the account
+          description: Initial money credited when opening the account
           minimum: 0
           exclusiveMinimum: true
         initialAmountCurrency:
@@ -85,7 +85,9 @@ components:
       required:
         - id
         - currency
-        - balance
+        - balanceAmount
+        - reservedAmount
+        - status
       properties:
         id:
           type: string

@@ -7,6 +7,6 @@ import org.girardsimon.wealthpay.account.domain.model.ReservationId;
 public record ReserveFunds(
         AccountId accountId,
         ReservationId reservationId,
-        Money amount
+        Money money
 ) {
 }
