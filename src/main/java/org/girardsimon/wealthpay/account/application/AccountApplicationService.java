@@ -1,9 +1,14 @@
 package org.girardsimon.wealthpay.account.application;
 
+import org.girardsimon.wealthpay.account.application.response.CaptureReservationResponse;
+import org.girardsimon.wealthpay.account.application.response.ReservationCaptureStatus;
 import org.girardsimon.wealthpay.account.application.view.AccountBalanceView;
+import org.girardsimon.wealthpay.account.domain.command.CaptureReservation;
 import org.girardsimon.wealthpay.account.domain.command.OpenAccount;
 import org.girardsimon.wealthpay.account.domain.event.AccountEvent;
+import org.girardsimon.wealthpay.account.domain.event.ReservationCaptured;
 import org.girardsimon.wealthpay.account.domain.exception.AccountAlreadyExistsException;
+import org.girardsimon.wealthpay.account.domain.exception.AccountHistoryNotFound;
 import org.girardsimon.wealthpay.account.domain.model.Account;
 import org.girardsimon.wealthpay.account.domain.model.AccountId;
 import org.girardsimon.wealthpay.account.domain.model.AccountIdGenerator;
@@ -49,5 +54,41 @@ public class AccountApplicationService {
     @Transactional(readOnly = true)
     public AccountBalanceView getAccountBalance(UUID accountId) {
         return accountBalanceProjector.getAccountBalance(accountId);
+    }
+
+    @Transactional
+    public CaptureReservationResponse captureReservation(CaptureReservation captureReservation) {
+        AccountId accountId = captureReservation.accountId();
+        List<AccountEvent> history = accountEventStore.loadEvents(accountId);
+        if(history.isEmpty()) {
+            throw new AccountHistoryNotFound();
+        }
+        Account account = Account.rehydrate(history);
+        List<AccountEvent> captureReservationEvents = account.handle(captureReservation, Instant.now(clock));
+
+
+        ReservationCaptured reservationCaptured = captureReservationEvents.stream()
+                .filter(ReservationCaptured.class::isInstance)
+                .map(ReservationCaptured.class::cast)
+                .findFirst()
+                .orElse(null);
+
+        if(reservationCaptured == null) {
+            return new CaptureReservationResponse(
+                    accountId,
+                    captureReservation.reservationId(),
+                    ReservationCaptureStatus.NO_EFFECT,
+                    null
+            );
+        }
+        long expectedVersion = account.getVersion();
+        accountEventStore.appendEvents(accountId, expectedVersion, captureReservationEvents);
+        accountBalanceProjector.project(captureReservationEvents);
+        return new CaptureReservationResponse(
+                accountId,
+                captureReservation.reservationId(),
+                ReservationCaptureStatus.CAPTURED,
+                reservationCaptured.money()
+        );
     }
 }

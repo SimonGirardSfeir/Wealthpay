@@ -9,7 +9,8 @@ public sealed interface AccountEvent permits AccountOpened,
         FundsDebited,
         FundsReserved,
         ReservationCancelled,
-        AccountClosed {
+        AccountClosed,
+        ReservationCaptured {
 
     AccountId accountId();
     Instant occurredAt();

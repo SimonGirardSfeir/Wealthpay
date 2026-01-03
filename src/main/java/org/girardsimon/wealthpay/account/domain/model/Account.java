@@ -1,6 +1,7 @@
 package org.girardsimon.wealthpay.account.domain.model;
 
 import org.girardsimon.wealthpay.account.domain.command.CancelReservation;
+import org.girardsimon.wealthpay.account.domain.command.CaptureReservation;
 import org.girardsimon.wealthpay.account.domain.command.CloseAccount;
 import org.girardsimon.wealthpay.account.domain.command.CreditAccount;
 import org.girardsimon.wealthpay.account.domain.command.DebitAccount;
@@ -13,6 +14,7 @@ import org.girardsimon.wealthpay.account.domain.event.FundsCredited;
 import org.girardsimon.wealthpay.account.domain.event.FundsDebited;
 import org.girardsimon.wealthpay.account.domain.event.FundsReserved;
 import org.girardsimon.wealthpay.account.domain.event.ReservationCancelled;
+import org.girardsimon.wealthpay.account.domain.event.ReservationCaptured;
 import org.girardsimon.wealthpay.account.domain.exception.AccountCurrencyMismatchException;
 import org.girardsimon.wealthpay.account.domain.exception.AccountHistoryNotFound;
 import org.girardsimon.wealthpay.account.domain.exception.AccountIdMismatchException;
@@ -155,6 +157,23 @@ public class Account {
         return List.of(accountClosed);
     }
 
+    public List<AccountEvent> handle(CaptureReservation captureReservation, Instant occurredAt) {
+        ensureAccountIdConsistency(captureReservation.accountId());
+        ensureActive();
+        Money money = this.reservations.get(captureReservation.reservationId());
+        if(money == null) {
+            return List.of();
+        }
+        ReservationCaptured reservationCaptured = new ReservationCaptured(
+                captureReservation.accountId(),
+                captureReservation.reservationId(),
+                money,
+                this.version + 1,
+                occurredAt
+        );
+        return List.of(reservationCaptured);
+    }
+
     private void ensureAccountIdConsistency(AccountId accountId) {
         if(!accountId.equals(this.id)) {
             throw new AccountIdMismatchException(accountId, this.id);
@@ -199,6 +218,10 @@ public class Account {
             case FundsDebited fundsDebited -> this.balance = this.balance.subtract(fundsDebited.amount());
             case FundsReserved fundsReserved -> this.reservations.put(fundsReserved.reservationId(), fundsReserved.amount());
             case ReservationCancelled reservationCancelled -> this.reservations.remove(reservationCancelled.reservationId());
+            case ReservationCaptured reservationCaptured -> {
+                this.balance = this.balance.subtract(reservationCaptured.money());
+                this.reservations.remove(reservationCaptured.reservationId());
+            }
         }
     }
 

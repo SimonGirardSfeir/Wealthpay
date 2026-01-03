@@ -2,8 +2,10 @@ package org.girardsimon.wealthpay.account.infrastructure.db.repository.mapper;
 
 import org.girardsimon.wealthpay.account.domain.event.AccountEvent;
 import org.girardsimon.wealthpay.account.domain.event.AccountOpened;
+import org.girardsimon.wealthpay.account.domain.event.ReservationCaptured;
 import org.girardsimon.wealthpay.account.domain.model.AccountId;
 import org.girardsimon.wealthpay.account.domain.model.Money;
+import org.girardsimon.wealthpay.account.domain.model.ReservationId;
 import org.girardsimon.wealthpay.account.domain.model.SupportedCurrency;
 import org.girardsimon.wealthpay.account.jooq.tables.pojos.EventStore;
 import org.springframework.stereotype.Component;
@@ -12,6 +14,7 @@ import tools.jackson.databind.ObjectMapper;
 
 import java.math.BigDecimal;
 import java.time.Instant;
+import java.util.UUID;
 import java.util.function.Function;
 
 @Component
@@ -29,8 +32,25 @@ public class EventStoreEntryToAccountEventMapper implements Function<EventStore,
 
         return switch (eventType) {
             case "AccountOpened" -> mapAccountOpened(eventStore);
+            case "ReservationCaptured" -> mapReservationCaptured(eventStore);
             default -> throw new IllegalArgumentException("Unknown event type: " + eventType);
         };
+    }
+
+    private ReservationCaptured mapReservationCaptured(EventStore eventStore) {
+        JsonNode root = objectMapper.readTree(eventStore.getPayload().data());
+
+        String reservationId = root.get("reservationId").asString();
+        SupportedCurrency currency = SupportedCurrency.valueOf(root.get("currency").asString());
+        BigDecimal amount = root.get("amount").decimalValue();
+
+        return new ReservationCaptured(
+                AccountId.of(eventStore.getAccountId()),
+                ReservationId.of(UUID.fromString(reservationId)),
+                Money.of(amount, currency),
+                eventStore.getVersion(),
+                Instant.parse(root.get("occurredAt").asString())
+        );
     }
 
     private AccountOpened mapAccountOpened(EventStore eventStore) {

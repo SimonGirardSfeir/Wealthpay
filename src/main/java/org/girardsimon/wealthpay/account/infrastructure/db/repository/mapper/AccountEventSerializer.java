@@ -7,6 +7,7 @@ import org.girardsimon.wealthpay.account.domain.event.FundsCredited;
 import org.girardsimon.wealthpay.account.domain.event.FundsDebited;
 import org.girardsimon.wealthpay.account.domain.event.FundsReserved;
 import org.girardsimon.wealthpay.account.domain.event.ReservationCancelled;
+import org.girardsimon.wealthpay.account.domain.event.ReservationCaptured;
 import org.jooq.JSONB;
 import org.springframework.stereotype.Component;
 import tools.jackson.databind.ObjectMapper;
@@ -32,7 +33,19 @@ public class AccountEventSerializer implements Function<AccountEvent, JSONB> {
             case FundsDebited fundsDebited -> null;
             case FundsReserved fundsReserved -> null;
             case ReservationCancelled reservationCancelled -> null;
+            case ReservationCaptured reservationCaptured -> mapReservationCapturedPayload(reservationCaptured);
         };
+    }
+
+    private JSONB mapReservationCapturedPayload(ReservationCaptured reservationCaptured) {
+        ObjectNode root = objectMapper.createObjectNode();
+        root.putPOJO("reservationId", reservationCaptured.reservationId().id().toString());
+        root.putPOJO("currency", reservationCaptured.money().currency().name());
+        root.putPOJO("amount", reservationCaptured.money().amount());
+        root.putPOJO("occurredAt", reservationCaptured.occurredAt().toString());
+
+        String jsonString = objectMapper.writeValueAsString(root);
+        return JSONB.valueOf(jsonString);
     }
 
     private JSONB mapAccountOpenedPayload(AccountOpened accountOpened) {

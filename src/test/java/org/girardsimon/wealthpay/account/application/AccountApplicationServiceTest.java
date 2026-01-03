@@ -1,12 +1,20 @@
 package org.girardsimon.wealthpay.account.application;
 
+import org.girardsimon.wealthpay.account.application.response.CaptureReservationResponse;
+import org.girardsimon.wealthpay.account.application.response.ReservationCaptureStatus;
 import org.girardsimon.wealthpay.account.application.view.AccountBalanceView;
+import org.girardsimon.wealthpay.account.domain.command.CaptureReservation;
 import org.girardsimon.wealthpay.account.domain.command.OpenAccount;
+import org.girardsimon.wealthpay.account.domain.event.AccountEvent;
 import org.girardsimon.wealthpay.account.domain.event.AccountOpened;
+import org.girardsimon.wealthpay.account.domain.event.FundsReserved;
+import org.girardsimon.wealthpay.account.domain.event.ReservationCaptured;
 import org.girardsimon.wealthpay.account.domain.exception.AccountAlreadyExistsException;
+import org.girardsimon.wealthpay.account.domain.exception.AccountHistoryNotFound;
 import org.girardsimon.wealthpay.account.domain.model.AccountId;
 import org.girardsimon.wealthpay.account.domain.model.AccountIdGenerator;
 import org.girardsimon.wealthpay.account.domain.model.Money;
+import org.girardsimon.wealthpay.account.domain.model.ReservationId;
 import org.girardsimon.wealthpay.account.domain.model.SupportedCurrency;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
@@ -22,8 +30,13 @@ import java.util.UUID;
 
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatExceptionOfType;
+import static org.junit.jupiter.api.Assertions.assertAll;
+import static org.mockito.ArgumentMatchers.any;
+import static org.mockito.ArgumentMatchers.anyLong;
 import static org.mockito.Mockito.inOrder;
 import static org.mockito.Mockito.mock;
+import static org.mockito.Mockito.times;
+import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.verifyNoInteractions;
 import static org.mockito.Mockito.when;
 
@@ -101,4 +114,111 @@ class AccountApplicationServiceTest {
         verifyNoInteractions(accountEventStore);
     }
 
+    @Test
+    void captureReservation_should_save_reservation_captured_event_when_reservation_exists() {
+        // Arrange
+        SupportedCurrency usd = SupportedCurrency.USD;
+        Money initialBalance = Money.of(BigDecimal.valueOf(10L), usd);
+        AccountOpened accountOpened = new AccountOpened(
+                accountId,
+                Instant.now(),
+                1L,
+                usd,
+                initialBalance
+        );
+        Money reservedAmount = Money.of(BigDecimal.valueOf(5L), usd);
+        ReservationId reservationId = ReservationId.newId();
+        FundsReserved fundsReserved = new FundsReserved(
+                accountId,
+                Instant.now(),
+                2L,
+                reservationId,
+                reservedAmount
+        );
+        List<AccountEvent> accountEvents = List.of(accountOpened, fundsReserved);
+        when(accountEventStore.loadEvents(accountId)).thenReturn(accountEvents);
+        CaptureReservation captureReservation = new CaptureReservation(accountId, reservationId);
+
+        // Act
+        CaptureReservationResponse captureReservationResponse = accountApplicationService.captureReservation(captureReservation);
+
+        // Assert
+        ReservationCaptured reservationCaptured = new ReservationCaptured(
+                accountId,
+                reservationId,
+                reservedAmount,
+                3L,
+                Instant.parse("2025-11-16T15:00:00Z")
+        );
+        InOrder inOrder = inOrder(accountEventStore, accountBalanceProjector);
+        inOrder.verify(accountEventStore).appendEvents(accountId, 2L, List.of(reservationCaptured));
+        inOrder.verify(accountBalanceProjector).project(List.of(reservationCaptured));
+        assertAll(
+                () -> assertThat(captureReservationResponse.accountId()).isEqualTo(accountId),
+                () -> assertThat(captureReservationResponse.reservationId()).isEqualTo(reservationId),
+                () -> assertThat(captureReservationResponse.reservationCaptureStatus()).isEqualTo(ReservationCaptureStatus.CAPTURED),
+                () -> assertThat(captureReservationResponse.money()).isEqualTo(reservedAmount)
+        );
+
+
+    }
+
+
+    @Test
+    void captureReservation_should_not_save_data_when_no_reservation_found() {
+        // Arrange
+        SupportedCurrency usd = SupportedCurrency.USD;
+        Money initialBalance = Money.of(BigDecimal.valueOf(10L), usd);
+        AccountOpened accountOpened = new AccountOpened(
+                accountId,
+                Instant.now(),
+                1L,
+                usd,
+                initialBalance
+        );
+        Money reservedAmount = Money.of(BigDecimal.valueOf(5L), usd);
+        ReservationId reservationId = ReservationId.newId();
+        FundsReserved fundsReserved = new FundsReserved(
+                accountId,
+                Instant.now(),
+                2L,
+                reservationId,
+                reservedAmount
+        );
+        List<AccountEvent> accountEvents = List.of(accountOpened, fundsReserved);
+        when(accountEventStore.loadEvents(accountId)).thenReturn(accountEvents);
+        ReservationId otherReservationId = ReservationId.newId();
+        CaptureReservation captureReservation = new CaptureReservation(accountId, otherReservationId);
+
+        // Act
+        CaptureReservationResponse captureReservationResponse = accountApplicationService.captureReservation(captureReservation);
+
+        // Assert
+        ReservationCaptured reservationCaptured = new ReservationCaptured(
+                accountId,
+                reservationId,
+                reservedAmount,
+                3L,
+                Instant.parse("2025-11-16T15:00:00Z")
+        );
+        verify(accountEventStore, times(0)).appendEvents(any(), anyLong(), any());
+        verify(accountBalanceProjector, times(0)).project(List.of(reservationCaptured));
+        assertAll(
+                () -> assertThat(captureReservationResponse.accountId()).isEqualTo(accountId),
+                () -> assertThat(captureReservationResponse.reservationId()).isEqualTo(otherReservationId),
+                () -> assertThat(captureReservationResponse.reservationCaptureStatus()).isEqualTo(ReservationCaptureStatus.NO_EFFECT),
+                () -> assertThat(captureReservationResponse.money()).isNull()
+        );
+    }
+
+    @Test
+    void captureReservation_should_throw_account_history_not_found_when_no_corresponding_account() {
+        // Arrange
+        CaptureReservation captureReservation = new CaptureReservation(accountId, ReservationId.newId());
+        when(accountEventStore.loadEvents(accountId)).thenReturn(List.of());
+
+        // Act ... Assert
+        assertThatExceptionOfType(AccountHistoryNotFound.class)
+                .isThrownBy(() -> accountApplicationService.captureReservation(captureReservation));
+    }
 }

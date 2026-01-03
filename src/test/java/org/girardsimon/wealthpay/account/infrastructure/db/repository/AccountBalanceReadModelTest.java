@@ -8,6 +8,7 @@ import org.girardsimon.wealthpay.account.domain.event.FundsCredited;
 import org.girardsimon.wealthpay.account.domain.event.FundsDebited;
 import org.girardsimon.wealthpay.account.domain.event.FundsReserved;
 import org.girardsimon.wealthpay.account.domain.event.ReservationCancelled;
+import org.girardsimon.wealthpay.account.domain.event.ReservationCaptured;
 import org.girardsimon.wealthpay.account.domain.model.AccountId;
 import org.girardsimon.wealthpay.account.domain.model.Money;
 import org.girardsimon.wealthpay.account.domain.model.ReservationId;
@@ -140,6 +141,54 @@ class AccountBalanceReadModelTest extends AbstractContainerTest {
                 () -> assertThat(accountBalance.reservedFunds().currency()).isEqualTo(SupportedCurrency.USD),
                 () -> assertThat(accountBalance.status()).isEqualTo("CLOSED"),
                 () -> assertThat(accountBalance.version()).isEqualTo(6L)
+        );
+    }
+
+    @Test
+    void account_balance_reservation_lifecycle() {
+        // Arrange
+        AccountId accountId = AccountId.newId();
+        AccountOpened accountOpened = new AccountOpened(
+                accountId,
+                Instant.now(),
+                1L,
+                SupportedCurrency.USD,
+                Money.of(BigDecimal.valueOf(1000L), SupportedCurrency.USD)
+        );
+        ReservationId reservationId = ReservationId.newId();
+        Money moneyReserved = Money.of(BigDecimal.valueOf(200L), SupportedCurrency.USD);
+        FundsReserved fundsReserved = new FundsReserved(
+                accountId,
+                Instant.now(),
+                2L,
+                reservationId,
+                moneyReserved
+        );
+        ReservationCaptured reservationCaptured = new ReservationCaptured(
+                accountId,
+                reservationId,
+                moneyReserved,
+                3L,
+                Instant.now()
+        );
+
+        List<AccountEvent> events = List.of(accountOpened, fundsReserved, reservationCaptured);
+
+        // Act
+        accountBalanceReadModel.project(events);
+
+        // Assert
+        AccountBalanceView accountBalance = accountBalanceReadModel.getAccountBalance(accountId.id());
+        assertAll(
+                () -> assertThat(accountBalance.accountId()).isEqualTo(accountId.id()),
+                () -> assertThat(accountBalance.balance().amount()).isEqualTo(BigDecimal.valueOf(800.00)
+                        .setScale(2, RoundingMode.HALF_EVEN)),
+                () -> assertThat(accountBalance.balance().currency()).isEqualTo(SupportedCurrency.USD),
+                () -> assertThat(accountBalance.reservedFunds().amount()).isEqualTo(BigDecimal.valueOf(0.00)
+                        .setScale(2, RoundingMode.HALF_EVEN)),
+                () -> assertThat(accountBalance.reservedFunds().currency()).isEqualTo(SupportedCurrency.USD),
+                () -> assertThat(accountBalance.status()).isEqualTo("OPENED"),
+                () -> assertThat(accountBalance.version()).isEqualTo(3L)
         );
     }
 
