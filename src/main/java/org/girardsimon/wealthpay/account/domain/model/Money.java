@@ -3,20 +3,46 @@ package org.girardsimon.wealthpay.account.domain.model;
 import java.math.BigDecimal;
 import java.math.RoundingMode;
 
+/**
+ * Immutable value object representing a monetary amount in a specific currency.
+ *
+ * <p>This class guarantees the following invariants:
+ * <ul>
+ *   <li>Amount is never null</li>
+ *   <li>Currency is never null</li>
+ *   <li>Amount scale matches the currency's default fraction digits (e.g., 2 for USD, 0 for JPY)</li>
+ * </ul>
+ *
+ * <p>Amounts are normalized using {@link RoundingMode#HALF_EVEN} (banker's rounding)
+ * to minimize cumulative rounding errors in financial calculations.
+ *
+ * <p><b>Usage:</b> Prefer the factory method {@link #of(BigDecimal, SupportedCurrency)}
+ * over direct constructor invocation.
+ *
+ * <pre>{@code
+ * Money price = Money.of(new BigDecimal("19.99"), SupportedCurrency.USD);
+ * Money total = price.add(Money.of(new BigDecimal("5.00"), SupportedCurrency.USD));
+ * }</pre>
+ *
+ * @param amount   the monetary amount, normalized to currency's fraction digits
+ * @param currency the currency of this money instance
+ */
 public record Money(BigDecimal amount, SupportedCurrency currency) {
-    public Money {
-        if(amount == null || currency == null) {
-            throw new IllegalArgumentException("money and currency must not be null");
-        }
-    }
 
-    public static Money of(BigDecimal amount, SupportedCurrency currency) {
-        if(amount == null || currency == null) {
-            throw new IllegalArgumentException("money and currency must not be null");
+    /**
+     * Normalizes amount scale to currency's fraction digits using banker's rounding.
+     */
+    public Money {
+        if (amount == null || currency == null) {
+            throw new IllegalArgumentException("amount and currency must not be null");
         }
         int defaultFractionDigits = currency.toJavaCurrency()
                 .getDefaultFractionDigits();
-        return new Money(amount.setScale(defaultFractionDigits, RoundingMode.HALF_EVEN), currency);
+        amount = amount.setScale(defaultFractionDigits, RoundingMode.HALF_EVEN);
+    }
+
+    public static Money of(BigDecimal amount, SupportedCurrency currency) {
+        return new Money(amount, currency);
     }
 
     public static Money zero(SupportedCurrency currency) {
@@ -50,9 +76,8 @@ public record Money(BigDecimal amount, SupportedCurrency currency) {
         return this.amount.compareTo(BigDecimal.ZERO) == 0;
     }
 
-
     private void ensureSameCurrency(Money money) {
-        if(!this.currency.equals(money.currency)) {
+        if (!this.currency.equals(money.currency)) {
             throw new IllegalArgumentException("Currencies mismatch: %s vs %s"
                     .formatted(this.currency, money.currency));
         }
