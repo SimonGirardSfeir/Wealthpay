@@ -29,25 +29,23 @@ paths:
 
   /accounts/{id}:
     get:
-      summary: Obtenir les détails d'un compte
+      summary: Get the details of an account
       operationId: getAccountById
       parameters:
         - name: id
           in: path
           required: true
-          description: Identifiant unique du compte (UUID)
+          description: Unique account identifier (UUID)
           schema:
             type: string
             format: uuid
       responses:
         '200':
-          description: Compte trouvé
+          description: Account details
           content:
             application/json:
               schema:
                 $ref: '#/components/schemas/AccountResponse'
-        '404':
-          description: Compte introuvable
 
 components:
   schemas:
