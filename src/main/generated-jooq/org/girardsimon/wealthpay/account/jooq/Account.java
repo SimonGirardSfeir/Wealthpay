@@ -10,6 +10,7 @@ import java.util.List;
 import org.girardsimon.wealthpay.account.jooq.tables.AccountBalanceView;
 import org.girardsimon.wealthpay.account.jooq.tables.EventStore;
 import org.girardsimon.wealthpay.account.jooq.tables.FlywaySchemaHistory;
+import org.girardsimon.wealthpay.account.jooq.tables.Outbox;
 import org.jooq.Catalog;
 import org.jooq.Table;
 import org.jooq.impl.SchemaImpl;
@@ -44,6 +45,11 @@ public class Account extends SchemaImpl {
     public final FlywaySchemaHistory FLYWAY_SCHEMA_HISTORY = FlywaySchemaHistory.FLYWAY_SCHEMA_HISTORY;
 
     /**
+     * The table <code>account.outbox</code>.
+     */
+    public final Outbox OUTBOX = Outbox.OUTBOX;
+
+    /**
      * No further instances allowed
      */
     private Account() {
@@ -61,7 +67,8 @@ public class Account extends SchemaImpl {
         return Arrays.asList(
             AccountBalanceView.ACCOUNT_BALANCE_VIEW,
             EventStore.EVENT_STORE,
-            FlywaySchemaHistory.FLYWAY_SCHEMA_HISTORY
+            FlywaySchemaHistory.FLYWAY_SCHEMA_HISTORY,
+            Outbox.OUTBOX
         );
     }
 }

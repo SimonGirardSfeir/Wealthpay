@@ -20,13 +20,18 @@ import org.girardsimon.wealthpay.account.domain.exception.AccountInactiveExcepti
 import org.girardsimon.wealthpay.account.domain.model.Account;
 import org.girardsimon.wealthpay.account.domain.model.AccountId;
 import org.girardsimon.wealthpay.account.domain.model.AccountStatus;
+import org.girardsimon.wealthpay.account.domain.model.EventId;
+import org.girardsimon.wealthpay.account.domain.model.EventIdGenerator;
 import org.girardsimon.wealthpay.account.domain.model.Money;
 import org.girardsimon.wealthpay.account.domain.model.ReservationId;
 import org.girardsimon.wealthpay.account.domain.model.SupportedCurrency;
 import org.girardsimon.wealthpay.account.domain.model.TransactionId;
+import org.girardsimon.wealthpay.account.testsupport.TestEventIdGenerator;
 import org.junit.jupiter.api.Test;
 
 class CaptureReservationTest {
+
+  private final EventIdGenerator eventIdGenerator = new TestEventIdGenerator();
 
   @Test
   void captureReservation_emits_reservation_captured_event_and_update_account_reservations() {
@@ -35,17 +40,19 @@ class CaptureReservationTest {
     SupportedCurrency currency = SupportedCurrency.USD;
     Money initialBalance = Money.of(BigDecimal.valueOf(15L), currency);
     AccountOpened accountOpened =
-        new AccountOpened(accountId, Instant.now(), 1L, currency, initialBalance);
+        new AccountOpened(EventId.newId(), accountId, Instant.now(), 1L, currency, initialBalance);
     Money reservationAmount = Money.of(BigDecimal.valueOf(5L), currency);
     ReservationId reservationId = ReservationId.newId();
     FundsReserved fundsReserved =
-        new FundsReserved(accountId, Instant.now(), 2L, reservationId, reservationAmount);
+        new FundsReserved(
+            EventId.newId(), accountId, Instant.now(), 2L, reservationId, reservationAmount);
     List<AccountEvent> initEvents = List.of(accountOpened, fundsReserved);
     Account account = Account.rehydrate(initEvents);
     CaptureReservation captureReservation = new CaptureReservation(accountId, reservationId);
 
     // Act
-    List<AccountEvent> captureReservationEvents = account.handle(captureReservation, Instant.now());
+    List<AccountEvent> captureReservationEvents =
+        account.handle(captureReservation, eventIdGenerator, Instant.now());
     List<AccountEvent> allEvents =
         Stream.concat(initEvents.stream(), captureReservationEvents.stream()).toList();
     Account accountAfterCapture = Account.rehydrate(allEvents);
@@ -72,14 +79,15 @@ class CaptureReservationTest {
     SupportedCurrency currency = SupportedCurrency.USD;
     Money initialBalance = Money.of(BigDecimal.valueOf(15L), currency);
     AccountOpened accountOpened =
-        new AccountOpened(accountId, Instant.now(), 1L, currency, initialBalance);
+        new AccountOpened(EventId.newId(), accountId, Instant.now(), 1L, currency, initialBalance);
     ReservationId reservationId = ReservationId.newId();
     List<AccountEvent> initEvents = List.of(accountOpened);
     Account account = Account.rehydrate(initEvents);
     CaptureReservation captureReservation = new CaptureReservation(accountId, reservationId);
 
     // Act
-    List<AccountEvent> captureReservationEvents = account.handle(captureReservation, Instant.now());
+    List<AccountEvent> captureReservationEvents =
+        account.handle(captureReservation, eventIdGenerator, Instant.now());
 
     // Assert
     assertThat(captureReservationEvents).isEmpty();
@@ -92,7 +100,7 @@ class CaptureReservationTest {
     SupportedCurrency currency = SupportedCurrency.USD;
     Money initialBalance = Money.of(BigDecimal.valueOf(15L), currency);
     AccountOpened accountOpened =
-        new AccountOpened(accountId, Instant.now(), 1L, currency, initialBalance);
+        new AccountOpened(EventId.newId(), accountId, Instant.now(), 1L, currency, initialBalance);
     List<AccountEvent> initEvents = List.of(accountOpened);
     Account account = Account.rehydrate(initEvents);
     ReservationId reservationId = ReservationId.newId();
@@ -102,7 +110,7 @@ class CaptureReservationTest {
     // Act ... Assert
     Instant occurredAt = Instant.now();
     assertThatExceptionOfType(AccountIdMismatchException.class)
-        .isThrownBy(() -> account.handle(captureReservation, occurredAt));
+        .isThrownBy(() -> account.handle(captureReservation, eventIdGenerator, occurredAt));
   }
 
   @Test
@@ -112,10 +120,11 @@ class CaptureReservationTest {
     SupportedCurrency currency = SupportedCurrency.USD;
     Money initialBalance = Money.of(BigDecimal.valueOf(15L), currency);
     AccountOpened accountOpened =
-        new AccountOpened(accountId, Instant.now(), 1L, currency, initialBalance);
+        new AccountOpened(EventId.newId(), accountId, Instant.now(), 1L, currency, initialBalance);
     FundsDebited debited =
-        new FundsDebited(TransactionId.newId(), accountId, Instant.now(), 2L, initialBalance);
-    AccountClosed closed = new AccountClosed(accountId, Instant.now(), 3L);
+        new FundsDebited(
+            EventId.newId(), accountId, Instant.now(), 2L, TransactionId.newId(), initialBalance);
+    AccountClosed closed = new AccountClosed(EventId.newId(), accountId, Instant.now(), 3L);
     List<AccountEvent> initEvents = List.of(accountOpened, debited, closed);
     Account account = Account.rehydrate(initEvents);
     ReservationId reservationId = ReservationId.newId();
@@ -124,6 +133,6 @@ class CaptureReservationTest {
     // Act ... Assert
     Instant occurredAt = Instant.now();
     assertThatExceptionOfType(AccountInactiveException.class)
-        .isThrownBy(() -> account.handle(captureReservation, occurredAt));
+        .isThrownBy(() -> account.handle(captureReservation, eventIdGenerator, occurredAt));
   }
 }

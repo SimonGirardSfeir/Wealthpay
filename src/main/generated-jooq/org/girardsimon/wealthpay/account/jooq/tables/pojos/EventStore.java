@@ -25,6 +25,7 @@ public class EventStore implements Serializable {
     private String eventType;
     private JSONB payload;
     private OffsetDateTime createdAt;
+    private UUID eventId;
 
     public EventStore() {}
 
@@ -35,6 +36,7 @@ public class EventStore implements Serializable {
         this.eventType = value.eventType;
         this.payload = value.payload;
         this.createdAt = value.createdAt;
+        this.eventId = value.eventId;
     }
 
     public EventStore(
@@ -43,7 +45,8 @@ public class EventStore implements Serializable {
         Long version,
         String eventType,
         JSONB payload,
-        OffsetDateTime createdAt
+        OffsetDateTime createdAt,
+        UUID eventId
     ) {
         this.id = id;
         this.accountId = accountId;
@@ -51,6 +54,7 @@ public class EventStore implements Serializable {
         this.eventType = eventType;
         this.payload = payload;
         this.createdAt = createdAt;
+        this.eventId = eventId;
     }
 
     /**
@@ -137,6 +141,20 @@ public class EventStore implements Serializable {
         this.createdAt = createdAt;
     }
 
+    /**
+     * Getter for <code>account.event_store.event_id</code>.
+     */
+    public UUID getEventId() {
+        return this.eventId;
+    }
+
+    /**
+     * Setter for <code>account.event_store.event_id</code>.
+     */
+    public void setEventId(UUID eventId) {
+        this.eventId = eventId;
+    }
+
     @Override
     public boolean equals(Object obj) {
         if (this == obj)
@@ -182,6 +200,12 @@ public class EventStore implements Serializable {
         }
         else if (!this.createdAt.equals(other.createdAt))
             return false;
+        if (this.eventId == null) {
+            if (other.eventId != null)
+                return false;
+        }
+        else if (!this.eventId.equals(other.eventId))
+            return false;
         return true;
     }
 
@@ -195,6 +219,7 @@ public class EventStore implements Serializable {
         result = prime * result + ((this.eventType == null) ? 0 : this.eventType.hashCode());
         result = prime * result + ((this.payload == null) ? 0 : this.payload.hashCode());
         result = prime * result + ((this.createdAt == null) ? 0 : this.createdAt.hashCode());
+        result = prime * result + ((this.eventId == null) ? 0 : this.eventId.hashCode());
         return result;
     }
 
@@ -208,6 +233,7 @@ public class EventStore implements Serializable {
         sb.append(", ").append(eventType);
         sb.append(", ").append(payload);
         sb.append(", ").append(createdAt);
+        sb.append(", ").append(eventId);
 
         sb.append(")");
         return sb.toString();

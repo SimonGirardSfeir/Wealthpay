@@ -86,6 +86,11 @@ public class EventStore extends TableImpl<EventStoreRecord> {
      */
     public final TableField<EventStoreRecord, OffsetDateTime> CREATED_AT = createField(DSL.name("created_at"), SQLDataType.TIMESTAMPWITHTIMEZONE(6).nullable(false).defaultValue(DSL.field(DSL.raw("now()"), SQLDataType.TIMESTAMPWITHTIMEZONE)), this, "");
 
+    /**
+     * The column <code>account.event_store.event_id</code>.
+     */
+    public final TableField<EventStoreRecord, UUID> EVENT_ID = createField(DSL.name("event_id"), SQLDataType.UUID.nullable(false), this, "");
+
     private EventStore(Name alias, Table<EventStoreRecord> aliased) {
         this(alias, aliased, (Field<?>[]) null, null);
     }
@@ -122,7 +127,7 @@ public class EventStore extends TableImpl<EventStoreRecord> {
 
     @Override
     public List<Index> getIndexes() {
-        return Arrays.asList(Indexes.IDX_EVENT_STORE_ACCOUNT_ID_VERSION);
+        return Arrays.asList(Indexes.IDX_EVENT_STORE_ACCOUNT_ID_VERSION, Indexes.IDX_EVENT_STORE_EVENT_ID);
     }
 
     @Override

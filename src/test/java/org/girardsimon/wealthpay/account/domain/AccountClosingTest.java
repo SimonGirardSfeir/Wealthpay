@@ -18,12 +18,17 @@ import org.girardsimon.wealthpay.account.domain.exception.AccountInactiveExcepti
 import org.girardsimon.wealthpay.account.domain.model.Account;
 import org.girardsimon.wealthpay.account.domain.model.AccountId;
 import org.girardsimon.wealthpay.account.domain.model.AccountStatus;
+import org.girardsimon.wealthpay.account.domain.model.EventId;
+import org.girardsimon.wealthpay.account.domain.model.EventIdGenerator;
 import org.girardsimon.wealthpay.account.domain.model.Money;
 import org.girardsimon.wealthpay.account.domain.model.SupportedCurrency;
 import org.girardsimon.wealthpay.account.domain.model.TransactionId;
+import org.girardsimon.wealthpay.account.testsupport.TestEventIdGenerator;
 import org.junit.jupiter.api.Test;
 
 class AccountClosingTest {
+
+  private final EventIdGenerator eventIdGenerator = new TestEventIdGenerator();
 
   @Test
   void closeAccount_emits_AccountClosed_event_and_set_status_to_CLOSED() {
@@ -32,15 +37,17 @@ class AccountClosingTest {
     SupportedCurrency currency = SupportedCurrency.USD;
     Money initialBalance = Money.of(BigDecimal.valueOf(10L), currency);
     AccountOpened opened =
-        new AccountOpened(accountId, Instant.now(), 1L, currency, initialBalance);
+        new AccountOpened(EventId.newId(), accountId, Instant.now(), 1L, currency, initialBalance);
     FundsDebited debited =
-        new FundsDebited(TransactionId.newId(), accountId, Instant.now(), 2L, initialBalance);
+        new FundsDebited(
+            EventId.newId(), accountId, Instant.now(), 2L, TransactionId.newId(), initialBalance);
     List<AccountEvent> initEvents = List.of(opened, debited);
     Account account = Account.rehydrate(initEvents);
     CloseAccount closeAccount = new CloseAccount(accountId);
 
     // Act
-    List<AccountEvent> closingEvents = account.handle(closeAccount, Instant.now());
+    List<AccountEvent> closingEvents =
+        account.handle(closeAccount, eventIdGenerator, Instant.now());
     List<AccountEvent> allEvents =
         Stream.concat(initEvents.stream(), closingEvents.stream()).toList();
     Account accountAfterCredit = Account.rehydrate(allEvents);
@@ -62,9 +69,10 @@ class AccountClosingTest {
     SupportedCurrency currency = SupportedCurrency.USD;
     Money initialBalance = Money.of(BigDecimal.valueOf(10L), currency);
     AccountOpened opened =
-        new AccountOpened(accountId, Instant.now(), 1L, currency, initialBalance);
+        new AccountOpened(EventId.newId(), accountId, Instant.now(), 1L, currency, initialBalance);
     FundsDebited debited =
-        new FundsDebited(TransactionId.newId(), accountId, Instant.now(), 2L, initialBalance);
+        new FundsDebited(
+            EventId.newId(), accountId, Instant.now(), 2L, TransactionId.newId(), initialBalance);
     Account account = Account.rehydrate(List.of(opened, debited));
     AccountId otherAccountId = AccountId.newId();
     CloseAccount closeAccount = new CloseAccount(otherAccountId);
@@ -72,7 +80,7 @@ class AccountClosingTest {
     // Act ... Assert
     Instant occurredAt = Instant.now();
     assertThatExceptionOfType(AccountIdMismatchException.class)
-        .isThrownBy(() -> account.handle(closeAccount, occurredAt));
+        .isThrownBy(() -> account.handle(closeAccount, eventIdGenerator, occurredAt));
   }
 
   @Test
@@ -82,16 +90,17 @@ class AccountClosingTest {
     SupportedCurrency currency = SupportedCurrency.USD;
     Money initialBalance = Money.of(BigDecimal.valueOf(10L), currency);
     AccountOpened opened =
-        new AccountOpened(accountId, Instant.now(), 1L, currency, initialBalance);
+        new AccountOpened(EventId.newId(), accountId, Instant.now(), 1L, currency, initialBalance);
     FundsDebited debited =
-        new FundsDebited(TransactionId.newId(), accountId, Instant.now(), 2L, initialBalance);
-    AccountClosed closed = new AccountClosed(accountId, Instant.now(), 3L);
+        new FundsDebited(
+            EventId.newId(), accountId, Instant.now(), 2L, TransactionId.newId(), initialBalance);
+    AccountClosed closed = new AccountClosed(EventId.newId(), accountId, Instant.now(), 3L);
     Account closedAccount = Account.rehydrate(List.of(opened, debited, closed));
     CloseAccount closeAccount = new CloseAccount(accountId);
 
     // Act ... Assert
     Instant occurredAt = Instant.now();
     assertThatExceptionOfType(AccountInactiveException.class)
-        .isThrownBy(() -> closedAccount.handle(closeAccount, occurredAt));
+        .isThrownBy(() -> closedAccount.handle(closeAccount, eventIdGenerator, occurredAt));
   }
 }

@@ -19,12 +19,17 @@ import org.girardsimon.wealthpay.account.domain.exception.AccountInactiveExcepti
 import org.girardsimon.wealthpay.account.domain.model.Account;
 import org.girardsimon.wealthpay.account.domain.model.AccountId;
 import org.girardsimon.wealthpay.account.domain.model.AccountStatus;
+import org.girardsimon.wealthpay.account.domain.model.EventId;
+import org.girardsimon.wealthpay.account.domain.model.EventIdGenerator;
 import org.girardsimon.wealthpay.account.domain.model.Money;
 import org.girardsimon.wealthpay.account.domain.model.ReservationId;
 import org.girardsimon.wealthpay.account.domain.model.SupportedCurrency;
+import org.girardsimon.wealthpay.account.testsupport.TestEventIdGenerator;
 import org.junit.jupiter.api.Test;
 
 class CancelReservationTest {
+
+  private final EventIdGenerator eventIdGenerator = new TestEventIdGenerator();
 
   @Test
   void cancelReservation_emits_ReservationCanceled_and_update_account_reservations() {
@@ -32,17 +37,20 @@ class CancelReservationTest {
     AccountId accountId = AccountId.newId();
     SupportedCurrency usd = SupportedCurrency.USD;
     Money initialBalance = Money.of(BigDecimal.valueOf(100L), usd);
-    AccountOpened opened = new AccountOpened(accountId, Instant.now(), 1L, usd, initialBalance);
+    AccountOpened opened =
+        new AccountOpened(EventId.newId(), accountId, Instant.now(), 1L, usd, initialBalance);
     Money firstReservedAmount = Money.of(BigDecimal.valueOf(60L), usd);
     ReservationId reservationId = ReservationId.newId();
     FundsReserved fundsReserved =
-        new FundsReserved(accountId, Instant.now(), 2L, reservationId, firstReservedAmount);
+        new FundsReserved(
+            EventId.newId(), accountId, Instant.now(), 2L, reservationId, firstReservedAmount);
     List<AccountEvent> initEvents = List.of(opened, fundsReserved);
     Account account = Account.rehydrate(initEvents);
     CancelReservation cancelReservation = new CancelReservation(accountId, reservationId);
 
     // Act
-    List<AccountEvent> cancellationEvents = account.handle(cancelReservation, Instant.now());
+    List<AccountEvent> cancellationEvents =
+        account.handle(cancelReservation, eventIdGenerator, Instant.now());
     List<AccountEvent> allEvents =
         Stream.concat(initEvents.stream(), cancellationEvents.stream()).toList();
     Account accountAfterCancellation = Account.rehydrate(allEvents);
@@ -65,18 +73,21 @@ class CancelReservationTest {
     AccountId accountId = AccountId.newId();
     SupportedCurrency usd = SupportedCurrency.USD;
     Money initialBalance = Money.of(BigDecimal.valueOf(100L), usd);
-    AccountOpened opened = new AccountOpened(accountId, Instant.now(), 1L, usd, initialBalance);
+    AccountOpened opened =
+        new AccountOpened(EventId.newId(), accountId, Instant.now(), 1L, usd, initialBalance);
     Money firstReservedAmount = Money.of(BigDecimal.valueOf(60L), usd);
     ReservationId reservationId = ReservationId.newId();
     FundsReserved fundsReserved =
-        new FundsReserved(accountId, Instant.now(), 2L, reservationId, firstReservedAmount);
+        new FundsReserved(
+            EventId.newId(), accountId, Instant.now(), 2L, reservationId, firstReservedAmount);
     List<AccountEvent> initEvents = List.of(opened, fundsReserved);
     Account account = Account.rehydrate(initEvents);
     CancelReservation cancelReservation = new CancelReservation(accountId, ReservationId.newId());
     Instant occurredAt = Instant.now();
 
     // Act
-    List<AccountEvent> accountEvents = account.handle(cancelReservation, occurredAt);
+    List<AccountEvent> accountEvents =
+        account.handle(cancelReservation, eventIdGenerator, occurredAt);
 
     // Assert
     assertThat(accountEvents).isEmpty();
@@ -88,11 +99,13 @@ class CancelReservationTest {
     AccountId accountId = AccountId.newId();
     SupportedCurrency usd = SupportedCurrency.USD;
     Money initialBalance = Money.of(BigDecimal.valueOf(100L), usd);
-    AccountOpened opened = new AccountOpened(accountId, Instant.now(), 1L, usd, initialBalance);
+    AccountOpened opened =
+        new AccountOpened(EventId.newId(), accountId, Instant.now(), 1L, usd, initialBalance);
     Money firstReservedAmount = Money.of(BigDecimal.valueOf(60L), usd);
     ReservationId reservationId = ReservationId.newId();
     FundsReserved fundsReserved =
-        new FundsReserved(accountId, Instant.now(), 2L, reservationId, firstReservedAmount);
+        new FundsReserved(
+            EventId.newId(), accountId, Instant.now(), 2L, reservationId, firstReservedAmount);
     List<AccountEvent> initEvents = List.of(opened, fundsReserved);
     Account account = Account.rehydrate(initEvents);
     CancelReservation cancelReservation = new CancelReservation(AccountId.newId(), reservationId);
@@ -100,7 +113,7 @@ class CancelReservationTest {
     // Act ... Assert
     Instant occurredAt = Instant.now();
     assertThatExceptionOfType(AccountIdMismatchException.class)
-        .isThrownBy(() -> account.handle(cancelReservation, occurredAt));
+        .isThrownBy(() -> account.handle(cancelReservation, eventIdGenerator, occurredAt));
   }
 
   @Test
@@ -109,18 +122,20 @@ class CancelReservationTest {
     AccountId accountId = AccountId.newId();
     SupportedCurrency usd = SupportedCurrency.USD;
     Money initialBalance = Money.of(BigDecimal.valueOf(10L), usd);
-    AccountOpened opened = new AccountOpened(accountId, Instant.now(), 1L, usd, initialBalance);
+    AccountOpened opened =
+        new AccountOpened(EventId.newId(), accountId, Instant.now(), 1L, usd, initialBalance);
     ReservationId reservationId = ReservationId.newId();
     Money reservedAmount = Money.of(BigDecimal.valueOf(10L), usd);
     FundsReserved fundsReserved =
-        new FundsReserved(accountId, Instant.now(), 2L, reservationId, reservedAmount);
-    AccountClosed closed = new AccountClosed(accountId, Instant.now(), 3L);
+        new FundsReserved(
+            EventId.newId(), accountId, Instant.now(), 2L, reservationId, reservedAmount);
+    AccountClosed closed = new AccountClosed(EventId.newId(), accountId, Instant.now(), 3L);
     Account closedAccount = Account.rehydrate(List.of(opened, fundsReserved, closed));
     CancelReservation cancelReservation = new CancelReservation(accountId, reservationId);
 
     // Act ... Assert
     Instant occurredAt = Instant.now();
     assertThatExceptionOfType(AccountInactiveException.class)
-        .isThrownBy(() -> closedAccount.handle(cancelReservation, occurredAt));
+        .isThrownBy(() -> closedAccount.handle(cancelReservation, eventIdGenerator, occurredAt));
   }
 }

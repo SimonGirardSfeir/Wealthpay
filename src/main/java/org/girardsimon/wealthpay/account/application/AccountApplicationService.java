@@ -14,6 +14,7 @@ import org.girardsimon.wealthpay.account.domain.exception.AccountHistoryNotFound
 import org.girardsimon.wealthpay.account.domain.model.Account;
 import org.girardsimon.wealthpay.account.domain.model.AccountId;
 import org.girardsimon.wealthpay.account.domain.model.AccountIdGenerator;
+import org.girardsimon.wealthpay.account.domain.model.EventIdGenerator;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
@@ -24,16 +25,23 @@ public class AccountApplicationService {
   private final AccountBalanceProjector accountBalanceProjector;
   private final Clock clock;
   private final AccountIdGenerator accountIdGenerator;
+  private final EventIdGenerator eventIdGenerator;
 
   public AccountApplicationService(
       AccountEventStore accountEventStore,
       AccountBalanceProjector accountBalanceProjector,
       Clock clock,
-      AccountIdGenerator accountIdGenerator) {
+      AccountIdGenerator accountIdGenerator,
+      EventIdGenerator eventIdGenerator) {
     this.accountEventStore = accountEventStore;
     this.accountBalanceProjector = accountBalanceProjector;
     this.clock = clock;
     this.accountIdGenerator = accountIdGenerator;
+    this.eventIdGenerator = eventIdGenerator;
+  }
+
+  private static long versionBeforeEvents(Account account, List<AccountEvent> events) {
+    return account.getVersion() - events.size();
   }
 
   @Transactional
@@ -42,7 +50,7 @@ public class AccountApplicationService {
 
     long expectedVersion = 0L;
     List<AccountEvent> createdAccountEvents =
-        Account.handle(openAccount, accountId, Instant.now(clock));
+        Account.handle(openAccount, accountId, eventIdGenerator, Instant.now(clock));
     accountEventStore.appendEvents(accountId, expectedVersion, createdAccountEvents);
     accountBalanceProjector.project(createdAccountEvents);
     return accountId;
@@ -62,7 +70,7 @@ public class AccountApplicationService {
     }
     Account account = Account.rehydrate(history);
     List<AccountEvent> captureReservationEvents =
-        account.handle(captureReservation, Instant.now(clock));
+        account.handle(captureReservation, eventIdGenerator, Instant.now(clock));
 
     ReservationCaptured reservationCaptured =
         captureReservationEvents.stream()
@@ -84,9 +92,5 @@ public class AccountApplicationService {
         captureReservation.reservationId(),
         ReservationCaptureStatus.CAPTURED,
         reservationCaptured.money());
-  }
-
-  private static long versionBeforeEvents(Account account, List<AccountEvent> events) {
-    return account.getVersion() - events.size();
   }
 }

@@ -7,6 +7,7 @@ package org.girardsimon.wealthpay.account.jooq;
 import org.girardsimon.wealthpay.account.jooq.tables.AccountBalanceView;
 import org.girardsimon.wealthpay.account.jooq.tables.EventStore;
 import org.girardsimon.wealthpay.account.jooq.tables.FlywaySchemaHistory;
+import org.girardsimon.wealthpay.account.jooq.tables.Outbox;
 
 
 /**
@@ -29,4 +30,9 @@ public class Tables {
      * The table <code>account.flyway_schema_history</code>.
      */
     public static final FlywaySchemaHistory FLYWAY_SCHEMA_HISTORY = FlywaySchemaHistory.FLYWAY_SCHEMA_HISTORY;
+
+    /**
+     * The table <code>account.outbox</code>.
+     */
+    public static final Outbox OUTBOX = Outbox.OUTBOX;
 }

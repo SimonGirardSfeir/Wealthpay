@@ -105,6 +105,20 @@ public class EventStoreRecord extends UpdatableRecordImpl<EventStoreRecord> {
         return (OffsetDateTime) get(5);
     }
 
+    /**
+     * Setter for <code>account.event_store.event_id</code>.
+     */
+    public void setEventId(UUID value) {
+        set(6, value);
+    }
+
+    /**
+     * Getter for <code>account.event_store.event_id</code>.
+     */
+    public UUID getEventId() {
+        return (UUID) get(6);
+    }
+
     // -------------------------------------------------------------------------
     // Primary key information
     // -------------------------------------------------------------------------
@@ -128,7 +142,7 @@ public class EventStoreRecord extends UpdatableRecordImpl<EventStoreRecord> {
     /**
      * Create a detached, initialised EventStoreRecord
      */
-    public EventStoreRecord(Long id, UUID accountId, Long version, String eventType, JSONB payload, OffsetDateTime createdAt) {
+    public EventStoreRecord(Long id, UUID accountId, Long version, String eventType, JSONB payload, OffsetDateTime createdAt, UUID eventId) {
         super(EventStore.EVENT_STORE);
 
         setId(id);
@@ -137,6 +151,7 @@ public class EventStoreRecord extends UpdatableRecordImpl<EventStoreRecord> {
         setEventType(eventType);
         setPayload(payload);
         setCreatedAt(createdAt);
+        setEventId(eventId);
         resetChangedOnNotNull();
     }
 
@@ -153,6 +168,7 @@ public class EventStoreRecord extends UpdatableRecordImpl<EventStoreRecord> {
             setEventType(value.getEventType());
             setPayload(value.getPayload());
             setCreatedAt(value.getCreatedAt());
+            setEventId(value.getEventId());
             resetChangedOnNotNull();
         }
     }

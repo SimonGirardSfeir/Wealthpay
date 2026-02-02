@@ -21,6 +21,7 @@ import org.girardsimon.wealthpay.account.domain.event.AccountEvent;
 import org.girardsimon.wealthpay.account.domain.event.AccountOpened;
 import org.girardsimon.wealthpay.account.domain.event.FundsCredited;
 import org.girardsimon.wealthpay.account.domain.model.AccountId;
+import org.girardsimon.wealthpay.account.domain.model.EventId;
 import org.girardsimon.wealthpay.account.domain.model.Money;
 import org.girardsimon.wealthpay.account.domain.model.SupportedCurrency;
 import org.girardsimon.wealthpay.account.domain.model.TransactionId;
@@ -55,6 +56,7 @@ class AccountEventRepositoryTest extends AbstractContainerTest {
   void loadEvents_should_return_deserialized_AccountOpened_event() {
     // Arrange
     AccountId accountId = AccountId.newId();
+    EventId eventId = EventId.newId();
     String payloadJson =
         """
             {
@@ -64,8 +66,13 @@ class AccountEventRepositoryTest extends AbstractContainerTest {
             }
             """;
     dsl.insertInto(table(name("account", "event_store")))
-        .columns(field("account_id"), field("version"), field("event_type"), field("payload"))
-        .values(accountId.id(), 1L, "AccountOpened", JSONB.valueOf(payloadJson))
+        .columns(
+            field("event_id"),
+            field("account_id"),
+            field("version"),
+            field("event_type"),
+            field("payload"))
+        .values(eventId.id(), accountId.id(), 1L, "AccountOpened", JSONB.valueOf(payloadJson))
         .execute();
 
     // Act
@@ -92,12 +99,14 @@ class AccountEventRepositoryTest extends AbstractContainerTest {
   @Test
   void appendEvents_persists_events_nominally() {
     // Arrange
+    EventId eventId = EventId.newId();
     AccountId accountId = AccountId.newId();
     SupportedCurrency usd = SupportedCurrency.USD;
     Money initialBalance = Money.of(BigDecimal.TEN, usd);
     Instant occurredAt = Instant.parse("2025-11-16T15:00:00Z");
 
-    AccountOpened opened = new AccountOpened(accountId, occurredAt, 1L, usd, initialBalance);
+    AccountOpened opened =
+        new AccountOpened(eventId, accountId, occurredAt, 1L, usd, initialBalance);
 
     // Act
     accountEventStore.appendEvents(accountId, 0L, List.of(opened));
@@ -109,6 +118,7 @@ class AccountEventRepositoryTest extends AbstractContainerTest {
     assertThat(first).isInstanceOf(AccountOpened.class);
     AccountOpened accountOpened = (AccountOpened) first;
     assertAll(
+        () -> assertThat(accountOpened.eventId()).isEqualTo(eventId),
         () -> assertThat(accountOpened.accountId()).isEqualTo(accountId),
         () ->
             assertThat(accountOpened.occurredAt()).isEqualTo(Instant.parse("2025-11-16T15:00:00Z")),
@@ -125,15 +135,26 @@ class AccountEventRepositoryTest extends AbstractContainerTest {
   void appendEvents_throws_OptimisticLockingFailureException_when_expectedVersion_is_outdated() {
     // Arrange
     AccountId accountId = AccountId.newId();
+    EventId eventId = EventId.newId();
     dsl.insertInto(table(name("account", "event_store")))
-        .columns(field("account_id"), field("version"), field("event_type"), field("payload"))
-        .values(accountId.id(), 1L, "AccountOpened", JSONB.valueOf("{}"))
+        .columns(
+            field("event_id"),
+            field("account_id"),
+            field("version"),
+            field("event_type"),
+            field("payload"))
+        .values(eventId.id(), accountId.id(), 1L, "AccountOpened", JSONB.valueOf("{}"))
         .execute();
     SupportedCurrency usd = SupportedCurrency.USD;
     Money initialBalance = Money.of(BigDecimal.TEN, usd);
     AccountOpened opened =
         new AccountOpened(
-            accountId, Instant.parse("2025-11-16T15:00:00Z"), 1L, usd, initialBalance);
+            EventId.newId(),
+            accountId,
+            Instant.parse("2025-11-16T15:00:00Z"),
+            1L,
+            usd,
+            initialBalance);
 
     // Act ... Assert
     List<AccountEvent> openedEvents = List.of(opened);
@@ -146,16 +167,23 @@ class AccountEventRepositoryTest extends AbstractContainerTest {
       appendEvents_throws_OptimisticLockingFailureException_when_expectedVersion_ahead_of_actual() {
     // Arrange
     AccountId accountId = AccountId.newId();
+    EventId eventId = EventId.newId();
     dsl.insertInto(table(name("account", "event_store")))
-        .columns(field("account_id"), field("version"), field("event_type"), field("payload"))
-        .values(accountId.id(), 1L, "AccountOpened", JSONB.valueOf("{}"))
+        .columns(
+            field("event_id"),
+            field("account_id"),
+            field("version"),
+            field("event_type"),
+            field("payload"))
+        .values(eventId.id(), accountId.id(), 1L, "AccountOpened", JSONB.valueOf("{}"))
         .execute();
     FundsCredited credited =
         new FundsCredited(
-            TransactionId.newId(),
+            EventId.newId(),
             accountId,
             Instant.now(),
             6L,
+            TransactionId.newId(),
             Money.of(BigDecimal.TEN, SupportedCurrency.USD));
 
     // Act ... Assert
@@ -170,6 +198,7 @@ class AccountEventRepositoryTest extends AbstractContainerTest {
     AccountId accountId = AccountId.newId();
     AccountOpened opened =
         new AccountOpened(
+            EventId.newId(),
             accountId,
             Instant.now(),
             3L,
@@ -189,6 +218,7 @@ class AccountEventRepositoryTest extends AbstractContainerTest {
     AccountId accountId = AccountId.newId();
     AccountOpened opened =
         new AccountOpened(
+            EventId.newId(),
             accountId,
             Instant.now(),
             1L,
@@ -217,10 +247,11 @@ class AccountEventRepositoryTest extends AbstractContainerTest {
                 go.await(); // Wait for a common start signal
                 FundsCredited credited =
                     new FundsCredited(
-                        TransactionId.newId(),
+                        EventId.newId(),
                         accountId,
                         Instant.now(),
                         2L,
+                        TransactionId.newId(),
                         Money.of(BigDecimal.TEN, SupportedCurrency.USD));
 
                 txTemplate.execute(

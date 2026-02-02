@@ -2,6 +2,7 @@ package org.girardsimon.wealthpay.account.domain.event;
 
 import java.time.Instant;
 import org.girardsimon.wealthpay.account.domain.model.AccountId;
+import org.girardsimon.wealthpay.account.domain.model.EventId;
 
 public sealed interface AccountEvent
     permits AccountOpened,
@@ -11,6 +12,7 @@ public sealed interface AccountEvent
         ReservationCancelled,
         AccountClosed,
         ReservationCaptured {
+  EventId eventId();
 
   AccountId accountId();
 

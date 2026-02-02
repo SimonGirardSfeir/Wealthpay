@@ -20,6 +20,7 @@ import org.girardsimon.wealthpay.account.domain.event.FundsReserved;
 import org.girardsimon.wealthpay.account.domain.event.ReservationCancelled;
 import org.girardsimon.wealthpay.account.domain.event.ReservationCaptured;
 import org.girardsimon.wealthpay.account.domain.model.AccountId;
+import org.girardsimon.wealthpay.account.domain.model.EventId;
 import org.girardsimon.wealthpay.account.domain.model.Money;
 import org.girardsimon.wealthpay.account.domain.model.ReservationId;
 import org.girardsimon.wealthpay.account.domain.model.SupportedCurrency;
@@ -84,6 +85,7 @@ class AccountBalanceReadModelTest extends AbstractContainerTest {
     AccountId accountId = AccountId.newId();
     AccountOpened accountOpened =
         new AccountOpened(
+            EventId.newId(),
             accountId,
             Instant.now(),
             1L,
@@ -91,25 +93,29 @@ class AccountBalanceReadModelTest extends AbstractContainerTest {
             Money.of(BigDecimal.valueOf(1000L), SupportedCurrency.USD));
     FundsCredited fundsCredited =
         new FundsCredited(
-            TransactionId.newId(),
+            EventId.newId(),
             accountId,
             Instant.now(),
             2L,
+            TransactionId.newId(),
             Money.of(BigDecimal.valueOf(500L), SupportedCurrency.USD));
     ReservationId reservationId = ReservationId.newId();
     Money moneyReserved = Money.of(BigDecimal.valueOf(200L), SupportedCurrency.USD);
     FundsReserved fundsReserved =
-        new FundsReserved(accountId, Instant.now(), 3L, reservationId, moneyReserved);
+        new FundsReserved(
+            EventId.newId(), accountId, Instant.now(), 3L, reservationId, moneyReserved);
     ReservationCancelled reservationCancelled =
-        new ReservationCancelled(accountId, Instant.now(), 4L, reservationId, moneyReserved);
+        new ReservationCancelled(
+            EventId.newId(), accountId, Instant.now(), 4L, reservationId, moneyReserved);
     FundsDebited fundsDebited =
         new FundsDebited(
-            TransactionId.newId(),
+            EventId.newId(),
             accountId,
             Instant.now(),
             5L,
+            TransactionId.newId(),
             Money.of(BigDecimal.valueOf(1500L), SupportedCurrency.USD));
-    AccountClosed accountClosed = new AccountClosed(accountId, Instant.now(), 6L);
+    AccountClosed accountClosed = new AccountClosed(EventId.newId(), accountId, Instant.now(), 6L);
     List<AccountEvent> events =
         List.of(
             accountOpened,
@@ -145,6 +151,7 @@ class AccountBalanceReadModelTest extends AbstractContainerTest {
     AccountId accountId = AccountId.newId();
     AccountOpened accountOpened =
         new AccountOpened(
+            EventId.newId(),
             accountId,
             Instant.now(),
             1L,
@@ -153,9 +160,11 @@ class AccountBalanceReadModelTest extends AbstractContainerTest {
     ReservationId reservationId = ReservationId.newId();
     Money moneyReserved = Money.of(BigDecimal.valueOf(200L), SupportedCurrency.USD);
     FundsReserved fundsReserved =
-        new FundsReserved(accountId, Instant.now(), 2L, reservationId, moneyReserved);
+        new FundsReserved(
+            EventId.newId(), accountId, Instant.now(), 2L, reservationId, moneyReserved);
     ReservationCaptured reservationCaptured =
-        new ReservationCaptured(accountId, reservationId, moneyReserved, 3L, Instant.now());
+        new ReservationCaptured(
+            EventId.newId(), accountId, Instant.now(), 3L, reservationId, moneyReserved);
 
     List<AccountEvent> events = List.of(accountOpened, fundsReserved, reservationCaptured);
 
@@ -200,10 +209,11 @@ class AccountBalanceReadModelTest extends AbstractContainerTest {
 
     FundsCredited fundsCredited =
         new FundsCredited(
-            TransactionId.newId(),
+            EventId.newId(),
             AccountId.of(accountId),
             Instant.now(),
             version - 1,
+            TransactionId.newId(),
             Money.of(BigDecimal.valueOf(500L), SupportedCurrency.USD));
 
     List<AccountEvent> events = List.of(fundsCredited);

@@ -15,6 +15,7 @@ import org.girardsimon.wealthpay.account.domain.event.FundsReserved;
 import org.girardsimon.wealthpay.account.domain.event.ReservationCancelled;
 import org.girardsimon.wealthpay.account.domain.event.ReservationCaptured;
 import org.girardsimon.wealthpay.account.domain.model.AccountId;
+import org.girardsimon.wealthpay.account.domain.model.EventId;
 import org.girardsimon.wealthpay.account.domain.model.Money;
 import org.girardsimon.wealthpay.account.domain.model.ReservationId;
 import org.girardsimon.wealthpay.account.domain.model.SupportedCurrency;
@@ -34,7 +35,7 @@ class AccountEventSerializerTest {
     Money initialBalance = Money.of(BigDecimal.valueOf(10), usd);
     Instant occurredAt = Instant.parse("2025-11-16T15:00:00Z");
     AccountOpened accountOpened =
-        new AccountOpened(AccountId.newId(), occurredAt, 1L, usd, initialBalance);
+        new AccountOpened(EventId.newId(), AccountId.newId(), occurredAt, 1L, usd, initialBalance);
     JSONB payloadAccountOpened =
         JSONB.valueOf(
             """
@@ -48,11 +49,12 @@ class AccountEventSerializerTest {
         ReservationId.of(UUID.fromString("09518c66-ff5e-4596-9049-74dfbdf6f6db"));
     ReservationCaptured reservationCaptured =
         new ReservationCaptured(
+            EventId.newId(),
             AccountId.newId(),
-            reservationId,
-            Money.of(BigDecimal.valueOf(40), SupportedCurrency.EUR),
+            occurredAt,
             3L,
-            occurredAt);
+            reservationId,
+            Money.of(BigDecimal.valueOf(40), SupportedCurrency.EUR));
     JSONB payloadReservationCaptured =
         JSONB.valueOf(
             """
@@ -63,7 +65,8 @@ class AccountEventSerializerTest {
                 "occurredAt": "2025-11-16T15:00:00Z"
             }
             """);
-    AccountClosed accountClosed = new AccountClosed(AccountId.newId(), occurredAt, 100L);
+    AccountClosed accountClosed =
+        new AccountClosed(EventId.newId(), AccountId.newId(), occurredAt, 100L);
     JSONB payloadAccountClosed =
         JSONB.valueOf(
             """
@@ -73,10 +76,11 @@ class AccountEventSerializerTest {
             """);
     FundsCredited fundsCredited =
         new FundsCredited(
-            TransactionId.of(UUID.fromString("93c1fbc0-3d93-43f2-a127-b3c5d1c7722c")),
+            EventId.newId(),
             AccountId.newId(),
             occurredAt,
             2L,
+            TransactionId.of(UUID.fromString("93c1fbc0-3d93-43f2-a127-b3c5d1c7722c")),
             Money.of(BigDecimal.valueOf(500L), SupportedCurrency.USD));
     JSONB payloadFundsCredited =
         JSONB.valueOf(
@@ -90,10 +94,11 @@ class AccountEventSerializerTest {
             """);
     FundsDebited fundsDebited =
         new FundsDebited(
-            TransactionId.of(UUID.fromString("bdbe57ef-6930-4502-a916-e77d978e1f76")),
+            EventId.newId(),
             AccountId.newId(),
             occurredAt,
             2L,
+            TransactionId.of(UUID.fromString("bdbe57ef-6930-4502-a916-e77d978e1f76")),
             Money.of(BigDecimal.valueOf(20L), SupportedCurrency.CHF));
     JSONB payloadFundsDebited =
         JSONB.valueOf(
@@ -107,6 +112,7 @@ class AccountEventSerializerTest {
             """);
     FundsReserved fundsReserved =
         new FundsReserved(
+            EventId.newId(),
             AccountId.newId(),
             occurredAt,
             2L,
@@ -124,6 +130,7 @@ class AccountEventSerializerTest {
             """);
     ReservationCancelled reservationCancelled =
         new ReservationCancelled(
+            EventId.newId(),
             AccountId.newId(),
             occurredAt,
             2L,

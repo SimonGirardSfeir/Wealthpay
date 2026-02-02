@@ -22,12 +22,17 @@ import org.girardsimon.wealthpay.account.domain.exception.InsufficientFundsExcep
 import org.girardsimon.wealthpay.account.domain.model.Account;
 import org.girardsimon.wealthpay.account.domain.model.AccountId;
 import org.girardsimon.wealthpay.account.domain.model.AccountStatus;
+import org.girardsimon.wealthpay.account.domain.model.EventId;
+import org.girardsimon.wealthpay.account.domain.model.EventIdGenerator;
 import org.girardsimon.wealthpay.account.domain.model.Money;
 import org.girardsimon.wealthpay.account.domain.model.SupportedCurrency;
 import org.girardsimon.wealthpay.account.domain.model.TransactionId;
+import org.girardsimon.wealthpay.account.testsupport.TestEventIdGenerator;
 import org.junit.jupiter.api.Test;
 
 class AccountDebitTest {
+
+  private final EventIdGenerator eventIdGenerator = new TestEventIdGenerator();
 
   @Test
   void debitAccount_emits_FundsDebited_event_and_updates_account_balance() {
@@ -41,9 +46,10 @@ class AccountDebitTest {
     DebitAccount debitAccount = new DebitAccount(transactionId, accountId, debitAmount);
 
     // Act
-    List<AccountEvent> openingEvents = Account.handle(openAccount, accountId, Instant.now());
+    List<AccountEvent> openingEvents =
+        Account.handle(openAccount, accountId, eventIdGenerator, Instant.now());
     Account account = Account.rehydrate(openingEvents);
-    List<AccountEvent> debitEvents = account.handle(debitAccount, Instant.now());
+    List<AccountEvent> debitEvents = account.handle(debitAccount, eventIdGenerator, Instant.now());
     List<AccountEvent> allEvents =
         Stream.concat(openingEvents.stream(), debitEvents.stream()).toList();
     Account accountAfterCredit = Account.rehydrate(allEvents);
@@ -69,7 +75,7 @@ class AccountDebitTest {
     SupportedCurrency usd = SupportedCurrency.USD;
     Money initialBalance = Money.of(BigDecimal.valueOf(10L), usd);
     AccountOpened accountOpened =
-        new AccountOpened(accountId, Instant.now(), 1L, usd, initialBalance);
+        new AccountOpened(EventId.newId(), accountId, Instant.now(), 1L, usd, initialBalance);
     Account account = Account.rehydrate(List.of(accountOpened));
     SupportedCurrency chf = SupportedCurrency.CHF;
     Money debitAmount = Money.of(BigDecimal.valueOf(5L), chf);
@@ -78,7 +84,7 @@ class AccountDebitTest {
     // Act ... Assert
     Instant occurredAt = Instant.now();
     assertThatExceptionOfType(AccountCurrencyMismatchException.class)
-        .isThrownBy(() -> account.handle(debitAccount, occurredAt));
+        .isThrownBy(() -> account.handle(debitAccount, eventIdGenerator, occurredAt));
   }
 
   @Test
@@ -88,7 +94,7 @@ class AccountDebitTest {
     SupportedCurrency usd = SupportedCurrency.USD;
     Money initialBalance = Money.of(BigDecimal.valueOf(10L), usd);
     AccountOpened accountOpened =
-        new AccountOpened(accountId, Instant.now(), 1L, usd, initialBalance);
+        new AccountOpened(EventId.newId(), accountId, Instant.now(), 1L, usd, initialBalance);
     Account account = Account.rehydrate(List.of(accountOpened));
     Money debitAmount = Money.of(BigDecimal.valueOf(5L), usd);
     AccountId otherAccountId = AccountId.newId();
@@ -98,7 +104,7 @@ class AccountDebitTest {
     // Act ... Assert
     Instant occurredAt = Instant.now();
     assertThatExceptionOfType(AccountIdMismatchException.class)
-        .isThrownBy(() -> account.handle(debitAccount, occurredAt));
+        .isThrownBy(() -> account.handle(debitAccount, eventIdGenerator, occurredAt));
   }
 
   @Test
@@ -108,7 +114,7 @@ class AccountDebitTest {
     SupportedCurrency usd = SupportedCurrency.USD;
     Money initialBalance = Money.of(BigDecimal.valueOf(10L), usd);
     AccountOpened accountOpened =
-        new AccountOpened(accountId, Instant.now(), 1L, usd, initialBalance);
+        new AccountOpened(EventId.newId(), accountId, Instant.now(), 1L, usd, initialBalance);
     Account account = Account.rehydrate(List.of(accountOpened));
     Money debitAmount = Money.of(BigDecimal.valueOf(-5L), usd);
     DebitAccount debitAccount = new DebitAccount(TransactionId.newId(), accountId, debitAmount);
@@ -116,7 +122,7 @@ class AccountDebitTest {
     // Act ... Assert
     Instant occurredAt = Instant.now();
     assertThatExceptionOfType(AmountMustBePositiveException.class)
-        .isThrownBy(() -> account.handle(debitAccount, occurredAt));
+        .isThrownBy(() -> account.handle(debitAccount, eventIdGenerator, occurredAt));
   }
 
   @Test
@@ -125,10 +131,12 @@ class AccountDebitTest {
     AccountId accountId = AccountId.newId();
     SupportedCurrency usd = SupportedCurrency.USD;
     Money initialBalance = Money.of(BigDecimal.valueOf(10L), usd);
-    AccountOpened opened = new AccountOpened(accountId, Instant.now(), 1L, usd, initialBalance);
+    AccountOpened opened =
+        new AccountOpened(EventId.newId(), accountId, Instant.now(), 1L, usd, initialBalance);
     FundsDebited debited =
-        new FundsDebited(TransactionId.newId(), accountId, Instant.now(), 2L, initialBalance);
-    AccountClosed closed = new AccountClosed(accountId, Instant.now(), 3L);
+        new FundsDebited(
+            EventId.newId(), accountId, Instant.now(), 2L, TransactionId.newId(), initialBalance);
+    AccountClosed closed = new AccountClosed(EventId.newId(), accountId, Instant.now(), 3L);
     Account closedAccount = Account.rehydrate(List.of(opened, debited, closed));
     Money debitAmount = Money.of(BigDecimal.valueOf(5L), usd);
     DebitAccount debitAccount = new DebitAccount(TransactionId.newId(), accountId, debitAmount);
@@ -136,7 +144,7 @@ class AccountDebitTest {
     // Act ... Assert
     Instant occurredAt = Instant.now();
     assertThatExceptionOfType(AccountInactiveException.class)
-        .isThrownBy(() -> closedAccount.handle(debitAccount, occurredAt));
+        .isThrownBy(() -> closedAccount.handle(debitAccount, eventIdGenerator, occurredAt));
   }
 
   @Test
@@ -146,7 +154,7 @@ class AccountDebitTest {
     SupportedCurrency usd = SupportedCurrency.USD;
     Money initialBalance = Money.of(BigDecimal.valueOf(10L), usd);
     AccountOpened accountOpened =
-        new AccountOpened(accountId, Instant.now(), 1L, usd, initialBalance);
+        new AccountOpened(EventId.newId(), accountId, Instant.now(), 1L, usd, initialBalance);
     Account account = Account.rehydrate(List.of(accountOpened));
     Money debitAmount = Money.of(BigDecimal.valueOf(15L), usd);
     DebitAccount debitAccount = new DebitAccount(TransactionId.newId(), accountId, debitAmount);
@@ -154,6 +162,6 @@ class AccountDebitTest {
     // Act ... Assert
     Instant occurredAt = Instant.now();
     assertThatExceptionOfType(InsufficientFundsException.class)
-        .isThrownBy(() -> account.handle(debitAccount, occurredAt));
+        .isThrownBy(() -> account.handle(debitAccount, eventIdGenerator, occurredAt));
   }
 }

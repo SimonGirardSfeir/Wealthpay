@@ -24,13 +24,18 @@ import org.girardsimon.wealthpay.account.domain.exception.ReservationConflictExc
 import org.girardsimon.wealthpay.account.domain.model.Account;
 import org.girardsimon.wealthpay.account.domain.model.AccountId;
 import org.girardsimon.wealthpay.account.domain.model.AccountStatus;
+import org.girardsimon.wealthpay.account.domain.model.EventId;
+import org.girardsimon.wealthpay.account.domain.model.EventIdGenerator;
 import org.girardsimon.wealthpay.account.domain.model.Money;
 import org.girardsimon.wealthpay.account.domain.model.ReservationId;
 import org.girardsimon.wealthpay.account.domain.model.SupportedCurrency;
 import org.girardsimon.wealthpay.account.domain.model.TransactionId;
+import org.girardsimon.wealthpay.account.testsupport.TestEventIdGenerator;
 import org.junit.jupiter.api.Test;
 
 class ReserveFundsTest {
+
+  private final EventIdGenerator eventIdGenerator = new TestEventIdGenerator();
 
   @Test
   void reserveFunds_emits_FundsReserved_event_and_update_account_reservations() {
@@ -44,9 +49,11 @@ class ReserveFundsTest {
     ReserveFunds reserveFunds = new ReserveFunds(accountId, reservationId, reservationAmount);
 
     // Act
-    List<AccountEvent> openingEvents = Account.handle(openAccount, accountId, Instant.now());
+    List<AccountEvent> openingEvents =
+        Account.handle(openAccount, accountId, eventIdGenerator, Instant.now());
     Account account = Account.rehydrate(openingEvents);
-    List<AccountEvent> reserveFundsEvents = account.handle(reserveFunds, Instant.now());
+    List<AccountEvent> reserveFundsEvents =
+        account.handle(reserveFunds, eventIdGenerator, Instant.now());
     List<AccountEvent> allEvents =
         Stream.concat(openingEvents.stream(), reserveFundsEvents.stream()).toList();
     Account accountAfterReservation = Account.rehydrate(allEvents);
@@ -73,7 +80,7 @@ class ReserveFundsTest {
     SupportedCurrency usd = SupportedCurrency.USD;
     Money initialBalance = Money.of(BigDecimal.valueOf(10L), usd);
     AccountOpened accountOpened =
-        new AccountOpened(accountId, Instant.now(), 1L, usd, initialBalance);
+        new AccountOpened(EventId.newId(), accountId, Instant.now(), 1L, usd, initialBalance);
     Account account = Account.rehydrate(List.of(accountOpened));
     SupportedCurrency chf = SupportedCurrency.CHF;
     Money reservedAmount = Money.of(BigDecimal.valueOf(5L), chf);
@@ -83,7 +90,7 @@ class ReserveFundsTest {
     // Act ... Assert
     Instant occurredAt = Instant.now();
     assertThatExceptionOfType(AccountCurrencyMismatchException.class)
-        .isThrownBy(() -> account.handle(reserveFunds, occurredAt));
+        .isThrownBy(() -> account.handle(reserveFunds, eventIdGenerator, occurredAt));
   }
 
   @Test
@@ -93,7 +100,7 @@ class ReserveFundsTest {
     SupportedCurrency usd = SupportedCurrency.USD;
     Money initialBalance = Money.of(BigDecimal.valueOf(10L), usd);
     AccountOpened accountOpened =
-        new AccountOpened(accountId, Instant.now(), 1L, usd, initialBalance);
+        new AccountOpened(EventId.newId(), accountId, Instant.now(), 1L, usd, initialBalance);
     Account account = Account.rehydrate(List.of(accountOpened));
     Money reservedAmount = Money.of(BigDecimal.valueOf(5L), usd);
     AccountId otherAccountId = AccountId.newId();
@@ -103,7 +110,7 @@ class ReserveFundsTest {
     // Act ... Assert
     Instant occurredAt = Instant.now();
     assertThatExceptionOfType(AccountIdMismatchException.class)
-        .isThrownBy(() -> account.handle(reserveFunds, occurredAt));
+        .isThrownBy(() -> account.handle(reserveFunds, eventIdGenerator, occurredAt));
   }
 
   @Test
@@ -113,7 +120,7 @@ class ReserveFundsTest {
     SupportedCurrency usd = SupportedCurrency.USD;
     Money initialBalance = Money.of(BigDecimal.valueOf(10L), usd);
     AccountOpened accountOpened =
-        new AccountOpened(accountId, Instant.now(), 1L, usd, initialBalance);
+        new AccountOpened(EventId.newId(), accountId, Instant.now(), 1L, usd, initialBalance);
     Account account = Account.rehydrate(List.of(accountOpened));
     Money reservedAmount = Money.of(BigDecimal.valueOf(-5L), usd);
     ReservationId reservationId = ReservationId.newId();
@@ -122,7 +129,7 @@ class ReserveFundsTest {
     // Act ... Assert
     Instant occurredAt = Instant.now();
     assertThatExceptionOfType(AmountMustBePositiveException.class)
-        .isThrownBy(() -> account.handle(reserveFunds, occurredAt));
+        .isThrownBy(() -> account.handle(reserveFunds, eventIdGenerator, occurredAt));
   }
 
   @Test
@@ -131,10 +138,12 @@ class ReserveFundsTest {
     AccountId accountId = AccountId.newId();
     SupportedCurrency usd = SupportedCurrency.USD;
     Money initialBalance = Money.of(BigDecimal.valueOf(10L), usd);
-    AccountOpened opened = new AccountOpened(accountId, Instant.now(), 1L, usd, initialBalance);
+    AccountOpened opened =
+        new AccountOpened(EventId.newId(), accountId, Instant.now(), 1L, usd, initialBalance);
     FundsDebited debited =
-        new FundsDebited(TransactionId.newId(), accountId, Instant.now(), 2L, initialBalance);
-    AccountClosed closed = new AccountClosed(accountId, Instant.now(), 3L);
+        new FundsDebited(
+            EventId.newId(), accountId, Instant.now(), 2L, TransactionId.newId(), initialBalance);
+    AccountClosed closed = new AccountClosed(EventId.newId(), accountId, Instant.now(), 3L);
     Account closedAccount = Account.rehydrate(List.of(opened, debited, closed));
     Money reservedAmount = Money.of(BigDecimal.valueOf(10L), usd);
     ReservationId reservationId = ReservationId.newId();
@@ -143,7 +152,7 @@ class ReserveFundsTest {
     // Act + Assert
     Instant occurredAt = Instant.now();
     assertThatExceptionOfType(AccountInactiveException.class)
-        .isThrownBy(() -> closedAccount.handle(reserveFunds, occurredAt));
+        .isThrownBy(() -> closedAccount.handle(reserveFunds, eventIdGenerator, occurredAt));
   }
 
   @Test
@@ -152,10 +161,17 @@ class ReserveFundsTest {
     AccountId accountId = AccountId.newId();
     SupportedCurrency usd = SupportedCurrency.USD;
     Money initialBalance = Money.of(BigDecimal.valueOf(100L), usd);
-    AccountOpened opened = new AccountOpened(accountId, Instant.now(), 1L, usd, initialBalance);
+    AccountOpened opened =
+        new AccountOpened(EventId.newId(), accountId, Instant.now(), 1L, usd, initialBalance);
     Money firstReservedAmount = Money.of(BigDecimal.valueOf(60L), usd);
     FundsReserved fundsReserved =
-        new FundsReserved(accountId, Instant.now(), 2L, ReservationId.newId(), firstReservedAmount);
+        new FundsReserved(
+            EventId.newId(),
+            accountId,
+            Instant.now(),
+            2L,
+            ReservationId.newId(),
+            firstReservedAmount);
     Account account = Account.rehydrate(List.of(opened, fundsReserved));
     Money reservedAmount =
         Money.of(BigDecimal.valueOf(50L), usd); // 50 > 100 - 60 = 40 available balance
@@ -165,7 +181,7 @@ class ReserveFundsTest {
     // Act + Assert
     Instant occurredAt = Instant.now();
     assertThatExceptionOfType(InsufficientFundsException.class)
-        .isThrownBy(() -> account.handle(reserveFunds, occurredAt));
+        .isThrownBy(() -> account.handle(reserveFunds, eventIdGenerator, occurredAt));
   }
 
   @Test
@@ -174,11 +190,13 @@ class ReserveFundsTest {
     AccountId accountId = AccountId.newId();
     SupportedCurrency usd = SupportedCurrency.USD;
     Money initialBalance = Money.of(BigDecimal.valueOf(100L), usd);
-    AccountOpened opened = new AccountOpened(accountId, Instant.now(), 1L, usd, initialBalance);
+    AccountOpened opened =
+        new AccountOpened(EventId.newId(), accountId, Instant.now(), 1L, usd, initialBalance);
     Money firstReservedAmount = Money.of(BigDecimal.valueOf(60L), usd);
     ReservationId reservationId = ReservationId.newId();
     FundsReserved fundsReserved =
-        new FundsReserved(accountId, Instant.now(), 2L, reservationId, firstReservedAmount);
+        new FundsReserved(
+            EventId.newId(), accountId, Instant.now(), 2L, reservationId, firstReservedAmount);
     Account account = Account.rehydrate(List.of(opened, fundsReserved));
     Money newReservedAmount = Money.of(BigDecimal.valueOf(10L), usd);
     ReserveFunds reserveFunds = new ReserveFunds(accountId, reservationId, newReservedAmount);
@@ -186,7 +204,7 @@ class ReserveFundsTest {
     // Act ... Assert
     Instant occurredAt = Instant.now();
     assertThatExceptionOfType(ReservationConflictException.class)
-        .isThrownBy(() -> account.handle(reserveFunds, occurredAt));
+        .isThrownBy(() -> account.handle(reserveFunds, eventIdGenerator, occurredAt));
   }
 
   @Test
@@ -195,17 +213,19 @@ class ReserveFundsTest {
     AccountId accountId = AccountId.newId();
     SupportedCurrency usd = SupportedCurrency.USD;
     Money initialBalance = Money.of(BigDecimal.valueOf(100L), usd);
-    AccountOpened opened = new AccountOpened(accountId, Instant.now(), 1L, usd, initialBalance);
+    AccountOpened opened =
+        new AccountOpened(EventId.newId(), accountId, Instant.now(), 1L, usd, initialBalance);
     Money reservedAmount = Money.of(BigDecimal.valueOf(60L), usd);
     ReservationId reservationId = ReservationId.newId();
     FundsReserved fundsReserved =
-        new FundsReserved(accountId, Instant.now(), 2L, reservationId, reservedAmount);
+        new FundsReserved(
+            EventId.newId(), accountId, Instant.now(), 2L, reservationId, reservedAmount);
     Account account = Account.rehydrate(List.of(opened, fundsReserved));
     ReserveFunds reserveFunds = new ReserveFunds(accountId, reservationId, reservedAmount);
-    Instant occurredAt = Instant.now();
 
     // Act
-    List<AccountEvent> accountEvents = account.handle(reserveFunds, occurredAt);
+    List<AccountEvent> accountEvents =
+        account.handle(reserveFunds, eventIdGenerator, Instant.now());
 
     // Assert
     assertThat(accountEvents).isEmpty();

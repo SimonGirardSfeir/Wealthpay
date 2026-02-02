@@ -15,6 +15,7 @@ import org.girardsimon.wealthpay.account.domain.event.FundsReserved;
 import org.girardsimon.wealthpay.account.domain.event.ReservationCancelled;
 import org.girardsimon.wealthpay.account.domain.event.ReservationCaptured;
 import org.girardsimon.wealthpay.account.domain.model.AccountId;
+import org.girardsimon.wealthpay.account.domain.model.EventId;
 import org.girardsimon.wealthpay.account.domain.model.Money;
 import org.girardsimon.wealthpay.account.domain.model.ReservationId;
 import org.girardsimon.wealthpay.account.domain.model.SupportedCurrency;
@@ -69,6 +70,7 @@ public class EventStoreEntryToAccountEventMapper implements Function<EventStore,
     String reservationId = getRequiredField(root, RESERVATION_ID).asString();
 
     return new ReservationCancelled(
+        EventId.of(eventStore.getEventId()),
         AccountId.of(eventStore.getAccountId()),
         Instant.parse(getRequiredField(root, OCCURRED_AT).asString()),
         eventStore.getVersion(),
@@ -82,6 +84,7 @@ public class EventStoreEntryToAccountEventMapper implements Function<EventStore,
     String reservationId = getRequiredField(root, RESERVATION_ID).asString();
 
     return new FundsReserved(
+        EventId.of(eventStore.getEventId()),
         AccountId.of(eventStore.getAccountId()),
         Instant.parse(getRequiredField(root, OCCURRED_AT).asString()),
         eventStore.getVersion(),
@@ -95,10 +98,11 @@ public class EventStoreEntryToAccountEventMapper implements Function<EventStore,
     String transactionId = root.get(TRANSACTION_ID).asString();
 
     return new FundsDebited(
-        TransactionId.of(UUID.fromString(transactionId)),
+        EventId.of(eventStore.getEventId()),
         AccountId.of(eventStore.getAccountId()),
         Instant.parse(root.get(OCCURRED_AT).asString()),
         eventStore.getVersion(),
+        TransactionId.of(UUID.fromString(transactionId)),
         extractMoney(root));
   }
 
@@ -108,10 +112,11 @@ public class EventStoreEntryToAccountEventMapper implements Function<EventStore,
     String transactionId = getRequiredField(root, TRANSACTION_ID).asString();
 
     return new FundsCredited(
-        TransactionId.of(UUID.fromString(transactionId)),
+        EventId.of(eventStore.getEventId()),
         AccountId.of(eventStore.getAccountId()),
         Instant.parse(getRequiredField(root, OCCURRED_AT).asString()),
         eventStore.getVersion(),
+        TransactionId.of(UUID.fromString(transactionId)),
         extractMoney(root));
   }
 
@@ -119,6 +124,7 @@ public class EventStoreEntryToAccountEventMapper implements Function<EventStore,
     JsonNode root = objectMapper.readTree(eventStore.getPayload().data());
 
     return new AccountClosed(
+        EventId.of(eventStore.getEventId()),
         AccountId.of(eventStore.getAccountId()),
         Instant.parse(getRequiredField(root, OCCURRED_AT).asString()),
         eventStore.getVersion());
@@ -130,11 +136,12 @@ public class EventStoreEntryToAccountEventMapper implements Function<EventStore,
     String reservationId = getRequiredField(root, RESERVATION_ID).asString();
 
     return new ReservationCaptured(
+        EventId.of(eventStore.getEventId()),
         AccountId.of(eventStore.getAccountId()),
-        ReservationId.of(UUID.fromString(reservationId)),
-        extractMoney(root),
+        Instant.parse(getRequiredField(root, OCCURRED_AT).asString()),
         eventStore.getVersion(),
-        Instant.parse(getRequiredField(root, OCCURRED_AT).asString()));
+        ReservationId.of(UUID.fromString(reservationId)),
+        extractMoney(root));
   }
 
   private AccountOpened mapAccountOpened(EventStore eventStore) {
@@ -145,6 +152,7 @@ public class EventStoreEntryToAccountEventMapper implements Function<EventStore,
     BigDecimal amount = getRequiredField(root, INITIAL_BALANCE).decimalValue();
 
     return new AccountOpened(
+        EventId.of(eventStore.getEventId()),
         AccountId.of(eventStore.getAccountId()),
         Instant.parse(getRequiredField(root, OCCURRED_AT).asString()),
         eventStore.getVersion(),

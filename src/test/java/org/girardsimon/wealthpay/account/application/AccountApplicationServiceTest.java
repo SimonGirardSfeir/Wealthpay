@@ -29,6 +29,8 @@ import org.girardsimon.wealthpay.account.domain.event.ReservationCaptured;
 import org.girardsimon.wealthpay.account.domain.exception.AccountHistoryNotFound;
 import org.girardsimon.wealthpay.account.domain.model.AccountId;
 import org.girardsimon.wealthpay.account.domain.model.AccountIdGenerator;
+import org.girardsimon.wealthpay.account.domain.model.EventId;
+import org.girardsimon.wealthpay.account.domain.model.EventIdGenerator;
 import org.girardsimon.wealthpay.account.domain.model.Money;
 import org.girardsimon.wealthpay.account.domain.model.ReservationId;
 import org.girardsimon.wealthpay.account.domain.model.SupportedCurrency;
@@ -46,12 +48,14 @@ class AccountApplicationServiceTest {
   Clock clock = Clock.fixed(Instant.parse("2025-11-16T15:00:00Z"), ZoneOffset.UTC);
 
   AccountId accountId = AccountId.newId();
+  EventId eventId = EventId.newId();
 
   AccountIdGenerator accountIdGenerator = () -> accountId;
+  EventIdGenerator eventIdGenerator = () -> eventId;
 
   AccountApplicationService accountApplicationService =
       new AccountApplicationService(
-          accountEventStore, accountBalanceProjector, clock, accountIdGenerator);
+          accountEventStore, accountBalanceProjector, clock, accountIdGenerator, eventIdGenerator);
 
   @Test
   void openAccount_saves_event_AccountOpened_when_account_does_not_exist() {
@@ -67,7 +71,12 @@ class AccountApplicationServiceTest {
     // Assert
     AccountOpened accountOpened =
         new AccountOpened(
-            accountId, Instant.parse("2025-11-16T15:00:00Z"), 1L, currency, initialBalance);
+            eventId,
+            accountId,
+            Instant.parse("2025-11-16T15:00:00Z"),
+            1L,
+            currency,
+            initialBalance);
     InOrder inOrder = inOrder(accountEventStore, accountBalanceProjector);
     inOrder.verify(accountEventStore).appendEvents(accountId, 0L, List.of(accountOpened));
     inOrder.verify(accountBalanceProjector).project(List.of(accountOpened));
@@ -94,11 +103,12 @@ class AccountApplicationServiceTest {
     SupportedCurrency usd = SupportedCurrency.USD;
     Money initialBalance = Money.of(BigDecimal.valueOf(10L), usd);
     AccountOpened accountOpened =
-        new AccountOpened(accountId, Instant.now(), 1L, usd, initialBalance);
+        new AccountOpened(EventId.newId(), accountId, Instant.now(), 1L, usd, initialBalance);
     Money reservedAmount = Money.of(BigDecimal.valueOf(5L), usd);
     ReservationId reservationId = ReservationId.newId();
     FundsReserved fundsReserved =
-        new FundsReserved(accountId, Instant.now(), 2L, reservationId, reservedAmount);
+        new FundsReserved(
+            EventId.newId(), accountId, Instant.now(), 2L, reservationId, reservedAmount);
     List<AccountEvent> accountEvents = List.of(accountOpened, fundsReserved);
     when(accountEventStore.loadEvents(accountId)).thenReturn(accountEvents);
     CaptureReservation captureReservation = new CaptureReservation(accountId, reservationId);
@@ -110,7 +120,12 @@ class AccountApplicationServiceTest {
     // Assert
     ReservationCaptured reservationCaptured =
         new ReservationCaptured(
-            accountId, reservationId, reservedAmount, 3L, Instant.parse("2025-11-16T15:00:00Z"));
+            eventId,
+            accountId,
+            Instant.parse("2025-11-16T15:00:00Z"),
+            3L,
+            reservationId,
+            reservedAmount);
     InOrder inOrder = inOrder(accountEventStore, accountBalanceProjector);
     inOrder.verify(accountEventStore).appendEvents(accountId, 2L, List.of(reservationCaptured));
     inOrder.verify(accountBalanceProjector).project(List.of(reservationCaptured));
@@ -129,11 +144,12 @@ class AccountApplicationServiceTest {
     SupportedCurrency usd = SupportedCurrency.USD;
     Money initialBalance = Money.of(BigDecimal.valueOf(10L), usd);
     AccountOpened accountOpened =
-        new AccountOpened(accountId, Instant.now(), 1L, usd, initialBalance);
+        new AccountOpened(EventId.newId(), accountId, Instant.now(), 1L, usd, initialBalance);
     Money reservedAmount = Money.of(BigDecimal.valueOf(5L), usd);
     ReservationId reservationId = ReservationId.newId();
     FundsReserved fundsReserved =
-        new FundsReserved(accountId, Instant.now(), 2L, reservationId, reservedAmount);
+        new FundsReserved(
+            EventId.newId(), accountId, Instant.now(), 2L, reservationId, reservedAmount);
     List<AccountEvent> accountEvents = List.of(accountOpened, fundsReserved);
     when(accountEventStore.loadEvents(accountId)).thenReturn(accountEvents);
     ReservationId otherReservationId = ReservationId.newId();
@@ -146,7 +162,12 @@ class AccountApplicationServiceTest {
     // Assert
     ReservationCaptured reservationCaptured =
         new ReservationCaptured(
-            accountId, reservationId, reservedAmount, 3L, Instant.parse("2025-11-16T15:00:00Z"));
+            eventId,
+            accountId,
+            Instant.parse("2025-11-16T15:00:00Z"),
+            3L,
+            reservationId,
+            reservedAmount);
     verify(accountEventStore, times(0)).appendEvents(any(), anyLong(), any());
     verify(accountBalanceProjector, times(0)).project(List.of(reservationCaptured));
     assertAll(

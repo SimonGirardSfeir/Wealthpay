@@ -21,7 +21,8 @@ class AccountTest {
     SupportedCurrency currency = SupportedCurrency.USD;
     Money credit = Money.of(BigDecimal.valueOf(10L), currency);
     AccountEvent fakeEvent =
-        new FundsCredited(TransactionId.newId(), accountId, Instant.now(), 1L, credit);
+        new FundsCredited(
+            EventId.newId(), accountId, Instant.now(), 1L, TransactionId.newId(), credit);
     List<AccountEvent> history = List.of(fakeEvent);
 
     // Act ... Assert

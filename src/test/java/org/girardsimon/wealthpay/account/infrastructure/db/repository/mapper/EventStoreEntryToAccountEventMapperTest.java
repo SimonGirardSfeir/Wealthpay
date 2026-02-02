@@ -15,6 +15,7 @@ import org.girardsimon.wealthpay.account.domain.event.FundsReserved;
 import org.girardsimon.wealthpay.account.domain.event.ReservationCancelled;
 import org.girardsimon.wealthpay.account.domain.event.ReservationCaptured;
 import org.girardsimon.wealthpay.account.domain.model.AccountId;
+import org.girardsimon.wealthpay.account.domain.model.EventId;
 import org.girardsimon.wealthpay.account.domain.model.Money;
 import org.girardsimon.wealthpay.account.domain.model.ReservationId;
 import org.girardsimon.wealthpay.account.domain.model.SupportedCurrency;
@@ -34,8 +35,10 @@ class EventStoreEntryToAccountEventMapperTest {
   public static Stream<Arguments> eventSourceAndExpectedEvent() {
     EventStore accountOpenedEvent = new EventStore();
     accountOpenedEvent.setEventType("AccountOpened");
+    UUID eventId = UUID.randomUUID();
     UUID accountId = UUID.randomUUID();
     accountOpenedEvent.setAccountId(accountId);
+    accountOpenedEvent.setEventId(eventId);
     accountOpenedEvent.setVersion(1L);
     accountOpenedEvent.setPayload(
         JSONB.valueOf(
@@ -48,13 +51,16 @@ class EventStoreEntryToAccountEventMapperTest {
             """));
     AccountOpened accountOpened =
         new AccountOpened(
+            EventId.of(eventId),
             AccountId.of(accountId),
             Instant.parse("2025-11-16T15:00:00Z"),
             1L,
             SupportedCurrency.USD,
             Money.of(BigDecimal.valueOf(10.00), SupportedCurrency.USD));
+    UUID reservationCaptureEventId = UUID.randomUUID();
     EventStore reservationCapturedEvent = new EventStore();
     reservationCapturedEvent.setEventType("ReservationCaptured");
+    reservationCapturedEvent.setEventId(reservationCaptureEventId);
     reservationCapturedEvent.setAccountId(accountId);
     reservationCapturedEvent.setVersion(4L);
     reservationCapturedEvent.setPayload(
@@ -69,13 +75,16 @@ class EventStoreEntryToAccountEventMapperTest {
             """));
     ReservationCaptured reservationCaptured =
         new ReservationCaptured(
+            EventId.of(reservationCaptureEventId),
             AccountId.of(accountId),
-            ReservationId.of(UUID.fromString("09518c66-ff5e-4596-9049-74dfbdf6f6db")),
-            Money.of(BigDecimal.valueOf(40.00), SupportedCurrency.EUR),
+            Instant.parse("2025-11-16T15:00:00Z"),
             4L,
-            Instant.parse("2025-11-16T15:00:00Z"));
+            ReservationId.of(UUID.fromString("09518c66-ff5e-4596-9049-74dfbdf6f6db")),
+            Money.of(BigDecimal.valueOf(40.00), SupportedCurrency.EUR));
+    UUID accountClosedEventId = UUID.randomUUID();
     EventStore accountClosedEvent = new EventStore();
     accountClosedEvent.setEventType("AccountClosed");
+    accountClosedEvent.setEventId(accountClosedEventId);
     accountClosedEvent.setAccountId(accountId);
     accountClosedEvent.setVersion(55L);
     accountClosedEvent.setPayload(
@@ -86,10 +95,16 @@ class EventStoreEntryToAccountEventMapperTest {
             }
             """));
     AccountClosed accountClosed =
-        new AccountClosed(AccountId.of(accountId), Instant.parse("2025-11-16T15:00:00Z"), 55L);
+        new AccountClosed(
+            EventId.of(accountClosedEventId),
+            AccountId.of(accountId),
+            Instant.parse("2025-11-16T15:00:00Z"),
+            55L);
 
+    UUID fundsCreditedEventId = UUID.randomUUID();
     EventStore fundsCreditedEvent = new EventStore();
     fundsCreditedEvent.setEventType("FundsCredited");
+    fundsCreditedEvent.setEventId(fundsCreditedEventId);
     fundsCreditedEvent.setAccountId(accountId);
     fundsCreditedEvent.setVersion(4L);
     fundsCreditedEvent.setPayload(
@@ -104,13 +119,16 @@ class EventStoreEntryToAccountEventMapperTest {
             """));
     FundsCredited fundsCredited =
         new FundsCredited(
-            TransactionId.of(UUID.fromString("93c1fbc0-3d93-43f2-a127-b3c5d1c7722c")),
+            EventId.of(fundsCreditedEventId),
             AccountId.of(accountId),
             Instant.parse("2025-11-16T15:00:00Z"),
             4L,
+            TransactionId.of(UUID.fromString("93c1fbc0-3d93-43f2-a127-b3c5d1c7722c")),
             Money.of(BigDecimal.valueOf(500L), SupportedCurrency.USD));
+    UUID fundsDebitedEventId = UUID.randomUUID();
     EventStore fundsDebitedEvent = new EventStore();
     fundsDebitedEvent.setEventType("FundsDebited");
+    fundsDebitedEvent.setEventId(fundsDebitedEventId);
     fundsDebitedEvent.setAccountId(accountId);
     fundsDebitedEvent.setVersion(6L);
     fundsDebitedEvent.setPayload(
@@ -125,13 +143,16 @@ class EventStoreEntryToAccountEventMapperTest {
             """));
     FundsDebited fundsDebited =
         new FundsDebited(
-            TransactionId.of(UUID.fromString("bdbe57ef-6930-4502-a916-e77d978e1f76")),
+            EventId.of(fundsDebitedEventId),
             AccountId.of(accountId),
             Instant.parse("2025-11-16T15:00:00Z"),
             6L,
+            TransactionId.of(UUID.fromString("bdbe57ef-6930-4502-a916-e77d978e1f76")),
             Money.of(BigDecimal.valueOf(20L), SupportedCurrency.CHF));
+    UUID fundsReservedEventId = UUID.randomUUID();
     EventStore fundsReservedEvent = new EventStore();
     fundsReservedEvent.setEventType("FundsReserved");
+    fundsReservedEvent.setEventId(fundsReservedEventId);
     fundsReservedEvent.setAccountId(accountId);
     fundsReservedEvent.setVersion(12L);
     fundsReservedEvent.setPayload(
@@ -146,13 +167,16 @@ class EventStoreEntryToAccountEventMapperTest {
             """));
     FundsReserved fundsReserved =
         new FundsReserved(
+            EventId.of(fundsReservedEventId),
             AccountId.of(accountId),
             Instant.parse("2025-11-16T15:00:00Z"),
             12L,
             ReservationId.of(UUID.fromString("09518c66-ff5e-4596-9049-74dfbdf6f6db")),
             Money.of(BigDecimal.valueOf(40.10), SupportedCurrency.GBP));
+    UUID reservationCancelledEventId = UUID.randomUUID();
     EventStore fundsReservationCancelledEvent = new EventStore();
     fundsReservationCancelledEvent.setEventType("ReservationCancelled");
+    fundsReservationCancelledEvent.setEventId(reservationCancelledEventId);
     fundsReservationCancelledEvent.setAccountId(accountId);
     fundsReservationCancelledEvent.setVersion(13L);
     fundsReservationCancelledEvent.setPayload(
@@ -167,6 +191,7 @@ class EventStoreEntryToAccountEventMapperTest {
             """));
     ReservationCancelled reservationCancelled =
         new ReservationCancelled(
+            EventId.of(reservationCancelledEventId),
             AccountId.of(accountId),
             Instant.parse("2025-11-16T15:00:00Z"),
             13L,

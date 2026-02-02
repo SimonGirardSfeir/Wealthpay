@@ -41,6 +41,7 @@ public class AccountEventRepository implements AccountEventStore {
         dslContext
             .select(
                 EVENT_STORE.ID,
+                EVENT_STORE.EVENT_ID,
                 EVENT_STORE.ACCOUNT_ID,
                 EVENT_STORE.VERSION,
                 EVENT_STORE.EVENT_TYPE,
@@ -94,11 +95,12 @@ public class AccountEventRepository implements AccountEventStore {
         dslContext
             .insertInto(EVENT_STORE)
             .columns(
+                EVENT_STORE.EVENT_ID,
                 EVENT_STORE.ACCOUNT_ID,
                 EVENT_STORE.VERSION,
                 EVENT_STORE.EVENT_TYPE,
                 EVENT_STORE.PAYLOAD)
-            .values(accountUuid, event.version(), eventType, payload)
+            .values(event.eventId().id(), accountUuid, event.version(), eventType, payload)
             .execute();
       }
     } catch (DataIntegrityViolationException e) {

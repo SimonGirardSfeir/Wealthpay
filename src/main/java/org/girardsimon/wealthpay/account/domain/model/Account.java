@@ -44,7 +44,10 @@ public class Account {
   }
 
   public static List<AccountEvent> handle(
-      OpenAccount openAccount, AccountId accountId, Instant occurredAt) {
+      OpenAccount openAccount,
+      AccountId accountId,
+      EventIdGenerator eventIdGenerator,
+      Instant occurredAt) {
     Money initialBalance = openAccount.initialBalance();
     if (initialBalance.isStrictlyNegative()) {
       throw new InvalidInitialBalanceException(initialBalance);
@@ -55,7 +58,8 @@ public class Account {
           initialBalance.currency().name(), accountCurrency.name());
     }
     AccountOpened accountOpened =
-        new AccountOpened(accountId, occurredAt, 1L, accountCurrency, initialBalance);
+        new AccountOpened(
+            eventIdGenerator.newId(), accountId, occurredAt, 1L, accountCurrency, initialBalance);
     return List.of(accountOpened);
   }
 
@@ -79,23 +83,26 @@ public class Account {
     return account;
   }
 
-  public List<AccountEvent> handle(CreditAccount creditAccount, Instant occurredAt) {
+  public List<AccountEvent> handle(
+      CreditAccount creditAccount, EventIdGenerator eventIdGenerator, Instant occurredAt) {
     ensureAccountIdConsistency(creditAccount.accountId());
     checkCurrencyConsistency(creditAccount.amount().currency());
     checkStrictlyPositiveAmount(creditAccount.amount());
     ensureActive();
     FundsCredited fundsCredited =
         new FundsCredited(
-            creditAccount.transactionId(),
+            eventIdGenerator.newId(),
             creditAccount.accountId(),
             occurredAt,
             this.version + 1,
+            creditAccount.transactionId(),
             creditAccount.amount());
     apply(fundsCredited);
     return List.of(fundsCredited);
   }
 
-  public List<AccountEvent> handle(DebitAccount debitAccount, Instant occurredAt) {
+  public List<AccountEvent> handle(
+      DebitAccount debitAccount, EventIdGenerator eventIdGenerator, Instant occurredAt) {
     ensureAccountIdConsistency(debitAccount.accountId());
     checkCurrencyConsistency(debitAccount.amount().currency());
     checkStrictlyPositiveAmount(debitAccount.amount());
@@ -105,16 +112,18 @@ public class Account {
     }
     FundsDebited fundsDebited =
         new FundsDebited(
-            debitAccount.transactionId(),
+            eventIdGenerator.newId(),
             debitAccount.accountId(),
             occurredAt,
             this.version + 1,
+            debitAccount.transactionId(),
             debitAccount.amount());
     apply(fundsDebited);
     return List.of(fundsDebited);
   }
 
-  public List<AccountEvent> handle(ReserveFunds reserveFunds, Instant occurredAt) {
+  public List<AccountEvent> handle(
+      ReserveFunds reserveFunds, EventIdGenerator eventIdGenerator, Instant occurredAt) {
     ensureAccountIdConsistency(reserveFunds.accountId());
     checkCurrencyConsistency(reserveFunds.money().currency());
     checkStrictlyPositiveAmount(reserveFunds.money());
@@ -133,6 +142,7 @@ public class Account {
     }
     FundsReserved fundsReserved =
         new FundsReserved(
+            eventIdGenerator.newId(),
             reserveFunds.accountId(),
             occurredAt,
             this.version + 1,
@@ -142,7 +152,8 @@ public class Account {
     return List.of(fundsReserved);
   }
 
-  public List<AccountEvent> handle(CancelReservation cancelReservation, Instant occurredAt) {
+  public List<AccountEvent> handle(
+      CancelReservation cancelReservation, EventIdGenerator eventIdGenerator, Instant occurredAt) {
     ensureAccountIdConsistency(cancelReservation.accountId());
     ensureActive();
     if (!this.reservations.containsKey(cancelReservation.reservationId())) {
@@ -150,6 +161,7 @@ public class Account {
     }
     ReservationCancelled reservationCancelled =
         new ReservationCancelled(
+            eventIdGenerator.newId(),
             cancelReservation.accountId(),
             occurredAt,
             this.version + 1,
@@ -159,19 +171,24 @@ public class Account {
     return List.of(reservationCancelled);
   }
 
-  public List<AccountEvent> handle(CloseAccount closeAccount, Instant occurredAt) {
+  public List<AccountEvent> handle(
+      CloseAccount closeAccount, EventIdGenerator eventIdGenerator, Instant occurredAt) {
     ensureAccountIdConsistency(closeAccount.accountId());
     ensureActive();
     if (!this.balance.isAmountZero() || !this.reservations.isEmpty()) {
       throw new AccountNotEmptyException();
     }
     AccountClosed accountClosed =
-        new AccountClosed(closeAccount.accountId(), occurredAt, this.version + 1);
+        new AccountClosed(
+            eventIdGenerator.newId(), closeAccount.accountId(), occurredAt, this.version + 1);
     apply(accountClosed);
     return List.of(accountClosed);
   }
 
-  public List<AccountEvent> handle(CaptureReservation captureReservation, Instant occurredAt) {
+  public List<AccountEvent> handle(
+      CaptureReservation captureReservation,
+      EventIdGenerator eventIdGenerator,
+      Instant occurredAt) {
     ensureAccountIdConsistency(captureReservation.accountId());
     ensureActive();
     Money money = this.reservations.get(captureReservation.reservationId());
@@ -180,11 +197,12 @@ public class Account {
     }
     ReservationCaptured reservationCaptured =
         new ReservationCaptured(
+            eventIdGenerator.newId(),
             captureReservation.accountId(),
-            captureReservation.reservationId(),
-            money,
+            occurredAt,
             this.version + 1,
-            occurredAt);
+            captureReservation.reservationId(),
+            money);
     apply(reservationCaptured);
     return List.of(reservationCaptured);
   }

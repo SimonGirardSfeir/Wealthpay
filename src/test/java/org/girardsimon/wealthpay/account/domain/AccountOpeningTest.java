@@ -15,11 +15,15 @@ import org.girardsimon.wealthpay.account.domain.exception.InvalidInitialBalanceE
 import org.girardsimon.wealthpay.account.domain.model.Account;
 import org.girardsimon.wealthpay.account.domain.model.AccountId;
 import org.girardsimon.wealthpay.account.domain.model.AccountStatus;
+import org.girardsimon.wealthpay.account.domain.model.EventIdGenerator;
 import org.girardsimon.wealthpay.account.domain.model.Money;
 import org.girardsimon.wealthpay.account.domain.model.SupportedCurrency;
+import org.girardsimon.wealthpay.account.testsupport.TestEventIdGenerator;
 import org.junit.jupiter.api.Test;
 
 class AccountOpeningTest {
+
+  private final EventIdGenerator eventIdGenerator = new TestEventIdGenerator();
 
   @Test
   void openAccountCommand_produces_accountOpenedEvent() {
@@ -30,7 +34,8 @@ class AccountOpeningTest {
     OpenAccount openAccount = new OpenAccount(currency, initialBalance);
 
     // Act
-    List<AccountEvent> events = Account.handle(openAccount, accountId, Instant.now());
+    List<AccountEvent> events =
+        Account.handle(openAccount, accountId, eventIdGenerator, Instant.now());
     Account account = Account.rehydrate(events);
 
     // Assert
@@ -56,7 +61,7 @@ class AccountOpeningTest {
     // Act ... Assert
     Instant occurredAt = Instant.now();
     assertThatExceptionOfType(AccountCurrencyMismatchException.class)
-        .isThrownBy(() -> Account.handle(openAccount, accountId, occurredAt));
+        .isThrownBy(() -> Account.handle(openAccount, accountId, eventIdGenerator, occurredAt));
   }
 
   @Test
@@ -70,7 +75,7 @@ class AccountOpeningTest {
     // Act ... Assert
     Instant occurredAt = Instant.now();
     assertThatExceptionOfType(InvalidInitialBalanceException.class)
-        .isThrownBy(() -> Account.handle(openAccount, accountId, occurredAt));
+        .isThrownBy(() -> Account.handle(openAccount, accountId, eventIdGenerator, occurredAt));
   }
 
   @Test
@@ -83,7 +88,8 @@ class AccountOpeningTest {
     Instant occurredAt = Instant.now();
 
     // Act
-    List<AccountEvent> accountEvents = Account.handle(openAccount, accountId, occurredAt);
+    List<AccountEvent> accountEvents =
+        Account.handle(openAccount, accountId, eventIdGenerator, occurredAt);
 
     // Assert
     assertThat(accountEvents).hasSize(1);
