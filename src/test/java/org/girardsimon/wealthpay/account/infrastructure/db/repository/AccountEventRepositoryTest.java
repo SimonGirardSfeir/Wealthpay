@@ -18,6 +18,7 @@ import java.util.concurrent.TimeUnit;
 import java.util.concurrent.atomic.AtomicInteger;
 import org.girardsimon.wealthpay.account.application.AccountEventStore;
 import org.girardsimon.wealthpay.account.domain.event.AccountEvent;
+import org.girardsimon.wealthpay.account.domain.event.AccountEventMeta;
 import org.girardsimon.wealthpay.account.domain.event.AccountOpened;
 import org.girardsimon.wealthpay.account.domain.event.FundsCredited;
 import org.girardsimon.wealthpay.account.domain.model.AccountId;
@@ -104,9 +105,8 @@ class AccountEventRepositoryTest extends AbstractContainerTest {
     SupportedCurrency usd = SupportedCurrency.USD;
     Money initialBalance = Money.of(BigDecimal.TEN, usd);
     Instant occurredAt = Instant.parse("2025-11-16T15:00:00Z");
-
-    AccountOpened opened =
-        new AccountOpened(eventId, accountId, occurredAt, 1L, usd, initialBalance);
+    AccountEventMeta metaOpened = AccountEventMeta.of(eventId, accountId, occurredAt, 1L);
+    AccountOpened opened = new AccountOpened(metaOpened, usd, initialBalance);
 
     // Act
     accountEventStore.appendEvents(accountId, 0L, List.of(opened));
@@ -147,14 +147,9 @@ class AccountEventRepositoryTest extends AbstractContainerTest {
         .execute();
     SupportedCurrency usd = SupportedCurrency.USD;
     Money initialBalance = Money.of(BigDecimal.TEN, usd);
-    AccountOpened opened =
-        new AccountOpened(
-            EventId.newId(),
-            accountId,
-            Instant.parse("2025-11-16T15:00:00Z"),
-            1L,
-            usd,
-            initialBalance);
+    AccountEventMeta metaOpened =
+        AccountEventMeta.of(EventId.newId(), accountId, Instant.parse("2025-11-16T15:00:00Z"), 1L);
+    AccountOpened opened = new AccountOpened(metaOpened, usd, initialBalance);
 
     // Act ... Assert
     List<AccountEvent> openedEvents = List.of(opened);
@@ -177,14 +172,11 @@ class AccountEventRepositoryTest extends AbstractContainerTest {
             field("payload"))
         .values(eventId.id(), accountId.id(), 1L, "AccountOpened", JSONB.valueOf("{}"))
         .execute();
+    AccountEventMeta metaCredited =
+        AccountEventMeta.of(EventId.newId(), accountId, Instant.now(), 6L);
     FundsCredited credited =
         new FundsCredited(
-            EventId.newId(),
-            accountId,
-            Instant.now(),
-            6L,
-            TransactionId.newId(),
-            Money.of(BigDecimal.TEN, SupportedCurrency.USD));
+            metaCredited, TransactionId.newId(), Money.of(BigDecimal.TEN, SupportedCurrency.USD));
 
     // Act ... Assert
     List<AccountEvent> creditedEvents = List.of(credited);
@@ -196,14 +188,11 @@ class AccountEventRepositoryTest extends AbstractContainerTest {
   void appendEvents_throws_IllegalStateException_when_event_versions_have_gap() {
     // Arrange
     AccountId accountId = AccountId.newId();
+    AccountEventMeta metaOpened =
+        AccountEventMeta.of(EventId.newId(), accountId, Instant.now(), 3L);
     AccountOpened opened =
         new AccountOpened(
-            EventId.newId(),
-            accountId,
-            Instant.now(),
-            3L,
-            SupportedCurrency.USD,
-            Money.of(BigDecimal.TEN, SupportedCurrency.USD));
+            metaOpened, SupportedCurrency.USD, Money.of(BigDecimal.TEN, SupportedCurrency.USD));
 
     // Act ... Assert
     List<AccountEvent> accountEvents = List.of(opened);
@@ -216,14 +205,11 @@ class AccountEventRepositoryTest extends AbstractContainerTest {
     // Arrange
     // Setup: create an account with a committed initial event
     AccountId accountId = AccountId.newId();
+    AccountEventMeta metaOpened =
+        AccountEventMeta.of(EventId.newId(), accountId, Instant.now(), 1L);
     AccountOpened opened =
         new AccountOpened(
-            EventId.newId(),
-            accountId,
-            Instant.now(),
-            1L,
-            SupportedCurrency.USD,
-            Money.of(BigDecimal.TEN, SupportedCurrency.USD));
+            metaOpened, SupportedCurrency.USD, Money.of(BigDecimal.TEN, SupportedCurrency.USD));
     TransactionTemplate txTemplate = new TransactionTemplate(transactionManager);
     // REQUIRES_NEW forces the actual commit (otherwise @JooqTest rolls back everything)
     txTemplate.setPropagationBehavior(TransactionDefinition.PROPAGATION_REQUIRES_NEW);
@@ -245,12 +231,11 @@ class AccountEventRepositoryTest extends AbstractContainerTest {
               ready.countDown(); // Signal "I'm ready"
               try {
                 go.await(); // Wait for a common start signal
+                AccountEventMeta metaCredited =
+                    AccountEventMeta.of(EventId.newId(), accountId, Instant.now(), 2L);
                 FundsCredited credited =
                     new FundsCredited(
-                        EventId.newId(),
-                        accountId,
-                        Instant.now(),
-                        2L,
+                        metaCredited,
                         TransactionId.newId(),
                         Money.of(BigDecimal.TEN, SupportedCurrency.USD));
 

@@ -13,6 +13,7 @@ import java.util.UUID;
 import org.girardsimon.wealthpay.account.application.view.AccountBalanceView;
 import org.girardsimon.wealthpay.account.domain.event.AccountClosed;
 import org.girardsimon.wealthpay.account.domain.event.AccountEvent;
+import org.girardsimon.wealthpay.account.domain.event.AccountEventMeta;
 import org.girardsimon.wealthpay.account.domain.event.AccountOpened;
 import org.girardsimon.wealthpay.account.domain.event.FundsCredited;
 import org.girardsimon.wealthpay.account.domain.event.FundsDebited;
@@ -83,39 +84,33 @@ class AccountBalanceReadModelTest extends AbstractContainerTest {
   void project_update_account_balance_view_as_expected() {
     // Arrange
     AccountId accountId = AccountId.newId();
+    AccountEventMeta meta1 = AccountEventMeta.of(EventId.newId(), accountId, Instant.now(), 1L);
     AccountOpened accountOpened =
         new AccountOpened(
-            EventId.newId(),
-            accountId,
-            Instant.now(),
-            1L,
+            meta1,
             SupportedCurrency.USD,
             Money.of(BigDecimal.valueOf(1000L), SupportedCurrency.USD));
+    AccountEventMeta meta2 = AccountEventMeta.of(EventId.newId(), accountId, Instant.now(), 2L);
     FundsCredited fundsCredited =
         new FundsCredited(
-            EventId.newId(),
-            accountId,
-            Instant.now(),
-            2L,
+            meta2,
             TransactionId.newId(),
             Money.of(BigDecimal.valueOf(500L), SupportedCurrency.USD));
     ReservationId reservationId = ReservationId.newId();
     Money moneyReserved = Money.of(BigDecimal.valueOf(200L), SupportedCurrency.USD);
-    FundsReserved fundsReserved =
-        new FundsReserved(
-            EventId.newId(), accountId, Instant.now(), 3L, reservationId, moneyReserved);
+    AccountEventMeta meta3 = AccountEventMeta.of(EventId.newId(), accountId, Instant.now(), 3L);
+    FundsReserved fundsReserved = new FundsReserved(meta3, reservationId, moneyReserved);
+    AccountEventMeta meta4 = AccountEventMeta.of(EventId.newId(), accountId, Instant.now(), 4L);
     ReservationCancelled reservationCancelled =
-        new ReservationCancelled(
-            EventId.newId(), accountId, Instant.now(), 4L, reservationId, moneyReserved);
+        new ReservationCancelled(meta4, reservationId, moneyReserved);
+    AccountEventMeta meta5 = AccountEventMeta.of(EventId.newId(), accountId, Instant.now(), 5L);
     FundsDebited fundsDebited =
         new FundsDebited(
-            EventId.newId(),
-            accountId,
-            Instant.now(),
-            5L,
+            meta5,
             TransactionId.newId(),
             Money.of(BigDecimal.valueOf(1500L), SupportedCurrency.USD));
-    AccountClosed accountClosed = new AccountClosed(EventId.newId(), accountId, Instant.now(), 6L);
+    AccountEventMeta meta6 = AccountEventMeta.of(EventId.newId(), accountId, Instant.now(), 6L);
+    AccountClosed accountClosed = new AccountClosed(meta6);
     List<AccountEvent> events =
         List.of(
             accountOpened,
@@ -149,22 +144,19 @@ class AccountBalanceReadModelTest extends AbstractContainerTest {
   void account_balance_reservation_lifecycle() {
     // Arrange
     AccountId accountId = AccountId.newId();
+    AccountEventMeta meta1 = AccountEventMeta.of(EventId.newId(), accountId, Instant.now(), 1L);
     AccountOpened accountOpened =
         new AccountOpened(
-            EventId.newId(),
-            accountId,
-            Instant.now(),
-            1L,
+            meta1,
             SupportedCurrency.USD,
             Money.of(BigDecimal.valueOf(1000L), SupportedCurrency.USD));
     ReservationId reservationId = ReservationId.newId();
     Money moneyReserved = Money.of(BigDecimal.valueOf(200L), SupportedCurrency.USD);
-    FundsReserved fundsReserved =
-        new FundsReserved(
-            EventId.newId(), accountId, Instant.now(), 2L, reservationId, moneyReserved);
+    AccountEventMeta meta2 = AccountEventMeta.of(EventId.newId(), accountId, Instant.now(), 2L);
+    FundsReserved fundsReserved = new FundsReserved(meta2, reservationId, moneyReserved);
+    AccountEventMeta meta3 = AccountEventMeta.of(EventId.newId(), accountId, Instant.now(), 3L);
     ReservationCaptured reservationCaptured =
-        new ReservationCaptured(
-            EventId.newId(), accountId, Instant.now(), 3L, reservationId, moneyReserved);
+        new ReservationCaptured(meta3, reservationId, moneyReserved);
 
     List<AccountEvent> events = List.of(accountOpened, fundsReserved, reservationCaptured);
 
@@ -206,15 +198,11 @@ class AccountBalanceReadModelTest extends AbstractContainerTest {
         .set(ACCOUNT_BALANCE_VIEW.STATUS, status)
         .set(ACCOUNT_BALANCE_VIEW.VERSION, version)
         .execute();
-
+    AccountEventMeta meta =
+        AccountEventMeta.of(EventId.newId(), AccountId.of(accountId), Instant.now(), version - 1);
     FundsCredited fundsCredited =
         new FundsCredited(
-            EventId.newId(),
-            AccountId.of(accountId),
-            Instant.now(),
-            version - 1,
-            TransactionId.newId(),
-            Money.of(BigDecimal.valueOf(500L), SupportedCurrency.USD));
+            meta, TransactionId.newId(), Money.of(BigDecimal.valueOf(500L), SupportedCurrency.USD));
 
     List<AccountEvent> events = List.of(fundsCredited);
 

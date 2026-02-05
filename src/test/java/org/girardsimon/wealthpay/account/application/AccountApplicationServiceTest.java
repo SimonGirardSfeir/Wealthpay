@@ -23,6 +23,7 @@ import org.girardsimon.wealthpay.account.application.view.AccountBalanceView;
 import org.girardsimon.wealthpay.account.domain.command.CaptureReservation;
 import org.girardsimon.wealthpay.account.domain.command.OpenAccount;
 import org.girardsimon.wealthpay.account.domain.event.AccountEvent;
+import org.girardsimon.wealthpay.account.domain.event.AccountEventMeta;
 import org.girardsimon.wealthpay.account.domain.event.AccountOpened;
 import org.girardsimon.wealthpay.account.domain.event.FundsReserved;
 import org.girardsimon.wealthpay.account.domain.event.ReservationCaptured;
@@ -69,14 +70,9 @@ class AccountApplicationServiceTest {
     accountApplicationService.openAccount(openAccount);
 
     // Assert
-    AccountOpened accountOpened =
-        new AccountOpened(
-            eventId,
-            accountId,
-            Instant.parse("2025-11-16T15:00:00Z"),
-            1L,
-            currency,
-            initialBalance);
+    AccountEventMeta accountEventMeta =
+        AccountEventMeta.of(eventId, accountId, Instant.parse("2025-11-16T15:00:00Z"), 1L);
+    AccountOpened accountOpened = new AccountOpened(accountEventMeta, currency, initialBalance);
     InOrder inOrder = inOrder(accountEventStore, accountBalanceProjector);
     inOrder.verify(accountEventStore).appendEvents(accountId, 0L, List.of(accountOpened));
     inOrder.verify(accountBalanceProjector).project(List.of(accountOpened));
@@ -102,13 +98,15 @@ class AccountApplicationServiceTest {
     // Arrange
     SupportedCurrency usd = SupportedCurrency.USD;
     Money initialBalance = Money.of(BigDecimal.valueOf(10L), usd);
-    AccountOpened accountOpened =
-        new AccountOpened(EventId.newId(), accountId, Instant.now(), 1L, usd, initialBalance);
+    AccountEventMeta accountEventMeta1 =
+        AccountEventMeta.of(EventId.newId(), accountId, Instant.now(), 1L);
+    AccountOpened accountOpened = new AccountOpened(accountEventMeta1, usd, initialBalance);
     Money reservedAmount = Money.of(BigDecimal.valueOf(5L), usd);
     ReservationId reservationId = ReservationId.newId();
+    AccountEventMeta accountEventMeta2 =
+        AccountEventMeta.of(EventId.newId(), accountId, Instant.now(), 2L);
     FundsReserved fundsReserved =
-        new FundsReserved(
-            EventId.newId(), accountId, Instant.now(), 2L, reservationId, reservedAmount);
+        new FundsReserved(accountEventMeta2, reservationId, reservedAmount);
     List<AccountEvent> accountEvents = List.of(accountOpened, fundsReserved);
     when(accountEventStore.loadEvents(accountId)).thenReturn(accountEvents);
     CaptureReservation captureReservation = new CaptureReservation(accountId, reservationId);
@@ -118,14 +116,10 @@ class AccountApplicationServiceTest {
         accountApplicationService.captureReservation(captureReservation);
 
     // Assert
+    AccountEventMeta accountEventMeta =
+        AccountEventMeta.of(eventId, accountId, Instant.parse("2025-11-16T15:00:00Z"), 3L);
     ReservationCaptured reservationCaptured =
-        new ReservationCaptured(
-            eventId,
-            accountId,
-            Instant.parse("2025-11-16T15:00:00Z"),
-            3L,
-            reservationId,
-            reservedAmount);
+        new ReservationCaptured(accountEventMeta, reservationId, reservedAmount);
     InOrder inOrder = inOrder(accountEventStore, accountBalanceProjector);
     inOrder.verify(accountEventStore).appendEvents(accountId, 2L, List.of(reservationCaptured));
     inOrder.verify(accountBalanceProjector).project(List.of(reservationCaptured));
@@ -143,13 +137,15 @@ class AccountApplicationServiceTest {
     // Arrange
     SupportedCurrency usd = SupportedCurrency.USD;
     Money initialBalance = Money.of(BigDecimal.valueOf(10L), usd);
-    AccountOpened accountOpened =
-        new AccountOpened(EventId.newId(), accountId, Instant.now(), 1L, usd, initialBalance);
+    AccountEventMeta accountEventMeta1 =
+        AccountEventMeta.of(EventId.newId(), accountId, Instant.now(), 1L);
+    AccountOpened accountOpened = new AccountOpened(accountEventMeta1, usd, initialBalance);
     Money reservedAmount = Money.of(BigDecimal.valueOf(5L), usd);
     ReservationId reservationId = ReservationId.newId();
+    AccountEventMeta accountEventMeta2 =
+        AccountEventMeta.of(EventId.newId(), accountId, Instant.now(), 2L);
     FundsReserved fundsReserved =
-        new FundsReserved(
-            EventId.newId(), accountId, Instant.now(), 2L, reservationId, reservedAmount);
+        new FundsReserved(accountEventMeta2, reservationId, reservedAmount);
     List<AccountEvent> accountEvents = List.of(accountOpened, fundsReserved);
     when(accountEventStore.loadEvents(accountId)).thenReturn(accountEvents);
     ReservationId otherReservationId = ReservationId.newId();
@@ -160,14 +156,10 @@ class AccountApplicationServiceTest {
         accountApplicationService.captureReservation(captureReservation);
 
     // Assert
+    AccountEventMeta accountEventMeta =
+        AccountEventMeta.of(eventId, accountId, Instant.parse("2025-11-16T15:00:00Z"), 3L);
     ReservationCaptured reservationCaptured =
-        new ReservationCaptured(
-            eventId,
-            accountId,
-            Instant.parse("2025-11-16T15:00:00Z"),
-            3L,
-            reservationId,
-            reservedAmount);
+        new ReservationCaptured(accountEventMeta, reservationId, reservedAmount);
     verify(accountEventStore, times(0)).appendEvents(any(), anyLong(), any());
     verify(accountBalanceProjector, times(0)).project(List.of(reservationCaptured));
     assertAll(

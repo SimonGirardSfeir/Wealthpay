@@ -11,6 +11,7 @@ import java.util.stream.Stream;
 import org.girardsimon.wealthpay.account.domain.command.CaptureReservation;
 import org.girardsimon.wealthpay.account.domain.event.AccountClosed;
 import org.girardsimon.wealthpay.account.domain.event.AccountEvent;
+import org.girardsimon.wealthpay.account.domain.event.AccountEventMeta;
 import org.girardsimon.wealthpay.account.domain.event.AccountOpened;
 import org.girardsimon.wealthpay.account.domain.event.FundsDebited;
 import org.girardsimon.wealthpay.account.domain.event.FundsReserved;
@@ -39,13 +40,12 @@ class CaptureReservationTest {
     AccountId accountId = AccountId.newId();
     SupportedCurrency currency = SupportedCurrency.USD;
     Money initialBalance = Money.of(BigDecimal.valueOf(15L), currency);
-    AccountOpened accountOpened =
-        new AccountOpened(EventId.newId(), accountId, Instant.now(), 1L, currency, initialBalance);
+    AccountEventMeta meta1 = AccountEventMeta.of(EventId.newId(), accountId, Instant.now(), 1L);
+    AccountOpened accountOpened = new AccountOpened(meta1, currency, initialBalance);
     Money reservationAmount = Money.of(BigDecimal.valueOf(5L), currency);
     ReservationId reservationId = ReservationId.newId();
-    FundsReserved fundsReserved =
-        new FundsReserved(
-            EventId.newId(), accountId, Instant.now(), 2L, reservationId, reservationAmount);
+    AccountEventMeta meta2 = AccountEventMeta.of(EventId.newId(), accountId, Instant.now(), 2L);
+    FundsReserved fundsReserved = new FundsReserved(meta2, reservationId, reservationAmount);
     List<AccountEvent> initEvents = List.of(accountOpened, fundsReserved);
     Account account = Account.rehydrate(initEvents);
     CaptureReservation captureReservation = new CaptureReservation(accountId, reservationId);
@@ -78,8 +78,8 @@ class CaptureReservationTest {
     AccountId accountId = AccountId.newId();
     SupportedCurrency currency = SupportedCurrency.USD;
     Money initialBalance = Money.of(BigDecimal.valueOf(15L), currency);
-    AccountOpened accountOpened =
-        new AccountOpened(EventId.newId(), accountId, Instant.now(), 1L, currency, initialBalance);
+    AccountEventMeta meta = AccountEventMeta.of(EventId.newId(), accountId, Instant.now(), 1L);
+    AccountOpened accountOpened = new AccountOpened(meta, currency, initialBalance);
     ReservationId reservationId = ReservationId.newId();
     List<AccountEvent> initEvents = List.of(accountOpened);
     Account account = Account.rehydrate(initEvents);
@@ -99,8 +99,8 @@ class CaptureReservationTest {
     AccountId accountId = AccountId.newId();
     SupportedCurrency currency = SupportedCurrency.USD;
     Money initialBalance = Money.of(BigDecimal.valueOf(15L), currency);
-    AccountOpened accountOpened =
-        new AccountOpened(EventId.newId(), accountId, Instant.now(), 1L, currency, initialBalance);
+    AccountEventMeta meta = AccountEventMeta.of(EventId.newId(), accountId, Instant.now(), 1L);
+    AccountOpened accountOpened = new AccountOpened(meta, currency, initialBalance);
     List<AccountEvent> initEvents = List.of(accountOpened);
     Account account = Account.rehydrate(initEvents);
     ReservationId reservationId = ReservationId.newId();
@@ -119,12 +119,12 @@ class CaptureReservationTest {
     AccountId accountId = AccountId.newId();
     SupportedCurrency currency = SupportedCurrency.USD;
     Money initialBalance = Money.of(BigDecimal.valueOf(15L), currency);
-    AccountOpened accountOpened =
-        new AccountOpened(EventId.newId(), accountId, Instant.now(), 1L, currency, initialBalance);
-    FundsDebited debited =
-        new FundsDebited(
-            EventId.newId(), accountId, Instant.now(), 2L, TransactionId.newId(), initialBalance);
-    AccountClosed closed = new AccountClosed(EventId.newId(), accountId, Instant.now(), 3L);
+    AccountEventMeta meta1 = AccountEventMeta.of(EventId.newId(), accountId, Instant.now(), 1L);
+    AccountOpened accountOpened = new AccountOpened(meta1, currency, initialBalance);
+    AccountEventMeta meta2 = AccountEventMeta.of(EventId.newId(), accountId, Instant.now(), 2L);
+    FundsDebited debited = new FundsDebited(meta2, TransactionId.newId(), initialBalance);
+    AccountClosed closed =
+        new AccountClosed(AccountEventMeta.of(EventId.newId(), accountId, Instant.now(), 3L));
     List<AccountEvent> initEvents = List.of(accountOpened, debited, closed);
     Account account = Account.rehydrate(initEvents);
     ReservationId reservationId = ReservationId.newId();

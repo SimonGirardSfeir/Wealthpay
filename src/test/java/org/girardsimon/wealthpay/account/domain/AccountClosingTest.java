@@ -11,6 +11,7 @@ import java.util.stream.Stream;
 import org.girardsimon.wealthpay.account.domain.command.CloseAccount;
 import org.girardsimon.wealthpay.account.domain.event.AccountClosed;
 import org.girardsimon.wealthpay.account.domain.event.AccountEvent;
+import org.girardsimon.wealthpay.account.domain.event.AccountEventMeta;
 import org.girardsimon.wealthpay.account.domain.event.AccountOpened;
 import org.girardsimon.wealthpay.account.domain.event.FundsDebited;
 import org.girardsimon.wealthpay.account.domain.exception.AccountIdMismatchException;
@@ -36,11 +37,10 @@ class AccountClosingTest {
     AccountId accountId = AccountId.newId();
     SupportedCurrency currency = SupportedCurrency.USD;
     Money initialBalance = Money.of(BigDecimal.valueOf(10L), currency);
-    AccountOpened opened =
-        new AccountOpened(EventId.newId(), accountId, Instant.now(), 1L, currency, initialBalance);
-    FundsDebited debited =
-        new FundsDebited(
-            EventId.newId(), accountId, Instant.now(), 2L, TransactionId.newId(), initialBalance);
+    AccountEventMeta meta1 = AccountEventMeta.of(EventId.newId(), accountId, Instant.now(), 1L);
+    AccountOpened opened = new AccountOpened(meta1, currency, initialBalance);
+    AccountEventMeta meta2 = AccountEventMeta.of(EventId.newId(), accountId, Instant.now(), 2L);
+    FundsDebited debited = new FundsDebited(meta2, TransactionId.newId(), initialBalance);
     List<AccountEvent> initEvents = List.of(opened, debited);
     Account account = Account.rehydrate(initEvents);
     CloseAccount closeAccount = new CloseAccount(accountId);
@@ -68,11 +68,10 @@ class AccountClosingTest {
     AccountId accountId = AccountId.newId();
     SupportedCurrency currency = SupportedCurrency.USD;
     Money initialBalance = Money.of(BigDecimal.valueOf(10L), currency);
-    AccountOpened opened =
-        new AccountOpened(EventId.newId(), accountId, Instant.now(), 1L, currency, initialBalance);
-    FundsDebited debited =
-        new FundsDebited(
-            EventId.newId(), accountId, Instant.now(), 2L, TransactionId.newId(), initialBalance);
+    AccountEventMeta meta1 = AccountEventMeta.of(EventId.newId(), accountId, Instant.now(), 1L);
+    AccountOpened opened = new AccountOpened(meta1, currency, initialBalance);
+    AccountEventMeta meta2 = AccountEventMeta.of(EventId.newId(), accountId, Instant.now(), 2L);
+    FundsDebited debited = new FundsDebited(meta2, TransactionId.newId(), initialBalance);
     Account account = Account.rehydrate(List.of(opened, debited));
     AccountId otherAccountId = AccountId.newId();
     CloseAccount closeAccount = new CloseAccount(otherAccountId);
@@ -89,12 +88,12 @@ class AccountClosingTest {
     AccountId accountId = AccountId.newId();
     SupportedCurrency currency = SupportedCurrency.USD;
     Money initialBalance = Money.of(BigDecimal.valueOf(10L), currency);
-    AccountOpened opened =
-        new AccountOpened(EventId.newId(), accountId, Instant.now(), 1L, currency, initialBalance);
-    FundsDebited debited =
-        new FundsDebited(
-            EventId.newId(), accountId, Instant.now(), 2L, TransactionId.newId(), initialBalance);
-    AccountClosed closed = new AccountClosed(EventId.newId(), accountId, Instant.now(), 3L);
+    AccountEventMeta meta1 = AccountEventMeta.of(EventId.newId(), accountId, Instant.now(), 1L);
+    AccountOpened opened = new AccountOpened(meta1, currency, initialBalance);
+    AccountEventMeta meta2 = AccountEventMeta.of(EventId.newId(), accountId, Instant.now(), 2L);
+    FundsDebited debited = new FundsDebited(meta2, TransactionId.newId(), initialBalance);
+    AccountEventMeta meta3 = AccountEventMeta.of(EventId.newId(), accountId, Instant.now(), 3L);
+    AccountClosed closed = new AccountClosed(meta3);
     Account closedAccount = Account.rehydrate(List.of(opened, debited, closed));
     CloseAccount closeAccount = new CloseAccount(accountId);
 

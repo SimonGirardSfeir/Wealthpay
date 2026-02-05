@@ -7,6 +7,7 @@ import java.time.Instant;
 import java.util.Collections;
 import java.util.List;
 import org.girardsimon.wealthpay.account.domain.event.AccountEvent;
+import org.girardsimon.wealthpay.account.domain.event.AccountEventMeta;
 import org.girardsimon.wealthpay.account.domain.event.FundsCredited;
 import org.girardsimon.wealthpay.account.domain.exception.AccountHistoryNotFound;
 import org.girardsimon.wealthpay.account.domain.exception.InvalidAccountEventStreamException;
@@ -20,9 +21,8 @@ class AccountTest {
     AccountId accountId = AccountId.newId();
     SupportedCurrency currency = SupportedCurrency.USD;
     Money credit = Money.of(BigDecimal.valueOf(10L), currency);
-    AccountEvent fakeEvent =
-        new FundsCredited(
-            EventId.newId(), accountId, Instant.now(), 1L, TransactionId.newId(), credit);
+    AccountEventMeta meta = AccountEventMeta.of(EventId.newId(), accountId, Instant.now(), 1L);
+    AccountEvent fakeEvent = new FundsCredited(meta, TransactionId.newId(), credit);
     List<AccountEvent> history = List.of(fakeEvent);
 
     // Act ... Assert

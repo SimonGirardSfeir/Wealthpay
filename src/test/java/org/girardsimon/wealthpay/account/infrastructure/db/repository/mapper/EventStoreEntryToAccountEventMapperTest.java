@@ -8,6 +8,7 @@ import java.util.UUID;
 import java.util.stream.Stream;
 import org.girardsimon.wealthpay.account.domain.event.AccountClosed;
 import org.girardsimon.wealthpay.account.domain.event.AccountEvent;
+import org.girardsimon.wealthpay.account.domain.event.AccountEventMeta;
 import org.girardsimon.wealthpay.account.domain.event.AccountOpened;
 import org.girardsimon.wealthpay.account.domain.event.FundsCredited;
 import org.girardsimon.wealthpay.account.domain.event.FundsDebited;
@@ -49,12 +50,15 @@ class EventStoreEntryToAccountEventMapperTest {
                 "occurredAt": "2025-11-16T15:00:00Z"
             }
             """));
-    AccountOpened accountOpened =
-        new AccountOpened(
+    AccountEventMeta metaOpened =
+        AccountEventMeta.of(
             EventId.of(eventId),
             AccountId.of(accountId),
             Instant.parse("2025-11-16T15:00:00Z"),
-            1L,
+            1L);
+    AccountOpened accountOpened =
+        new AccountOpened(
+            metaOpened,
             SupportedCurrency.USD,
             Money.of(BigDecimal.valueOf(10.00), SupportedCurrency.USD));
     UUID reservationCaptureEventId = UUID.randomUUID();
@@ -73,12 +77,15 @@ class EventStoreEntryToAccountEventMapperTest {
                 "occurredAt": "2025-11-16T15:00:00Z"
             }
             """));
-    ReservationCaptured reservationCaptured =
-        new ReservationCaptured(
+    AccountEventMeta metaCaptured =
+        AccountEventMeta.of(
             EventId.of(reservationCaptureEventId),
             AccountId.of(accountId),
             Instant.parse("2025-11-16T15:00:00Z"),
-            4L,
+            4L);
+    ReservationCaptured reservationCaptured =
+        new ReservationCaptured(
+            metaCaptured,
             ReservationId.of(UUID.fromString("09518c66-ff5e-4596-9049-74dfbdf6f6db")),
             Money.of(BigDecimal.valueOf(40.00), SupportedCurrency.EUR));
     UUID accountClosedEventId = UUID.randomUUID();
@@ -94,13 +101,13 @@ class EventStoreEntryToAccountEventMapperTest {
                 "occurredAt": "2025-11-16T15:00:00Z"
             }
             """));
-    AccountClosed accountClosed =
-        new AccountClosed(
+    AccountEventMeta metaClosed =
+        AccountEventMeta.of(
             EventId.of(accountClosedEventId),
             AccountId.of(accountId),
             Instant.parse("2025-11-16T15:00:00Z"),
             55L);
-
+    AccountClosed accountClosed = new AccountClosed(metaClosed);
     UUID fundsCreditedEventId = UUID.randomUUID();
     EventStore fundsCreditedEvent = new EventStore();
     fundsCreditedEvent.setEventType("FundsCredited");
@@ -117,12 +124,15 @@ class EventStoreEntryToAccountEventMapperTest {
                 "occurredAt": "2025-11-16T15:00:00Z"
             }
             """));
-    FundsCredited fundsCredited =
-        new FundsCredited(
+    AccountEventMeta metaCredited =
+        AccountEventMeta.of(
             EventId.of(fundsCreditedEventId),
             AccountId.of(accountId),
             Instant.parse("2025-11-16T15:00:00Z"),
-            4L,
+            4L);
+    FundsCredited fundsCredited =
+        new FundsCredited(
+            metaCredited,
             TransactionId.of(UUID.fromString("93c1fbc0-3d93-43f2-a127-b3c5d1c7722c")),
             Money.of(BigDecimal.valueOf(500L), SupportedCurrency.USD));
     UUID fundsDebitedEventId = UUID.randomUUID();
@@ -141,12 +151,15 @@ class EventStoreEntryToAccountEventMapperTest {
                 "occurredAt": "2025-11-16T15:00:00Z"
             }
             """));
-    FundsDebited fundsDebited =
-        new FundsDebited(
+    AccountEventMeta metaDebited =
+        AccountEventMeta.of(
             EventId.of(fundsDebitedEventId),
             AccountId.of(accountId),
             Instant.parse("2025-11-16T15:00:00Z"),
-            6L,
+            6L);
+    FundsDebited fundsDebited =
+        new FundsDebited(
+            metaDebited,
             TransactionId.of(UUID.fromString("bdbe57ef-6930-4502-a916-e77d978e1f76")),
             Money.of(BigDecimal.valueOf(20L), SupportedCurrency.CHF));
     UUID fundsReservedEventId = UUID.randomUUID();
@@ -165,12 +178,15 @@ class EventStoreEntryToAccountEventMapperTest {
                 "occurredAt": "2025-11-16T15:00:00Z"
             }
             """));
-    FundsReserved fundsReserved =
-        new FundsReserved(
+    AccountEventMeta metaReserved =
+        AccountEventMeta.of(
             EventId.of(fundsReservedEventId),
             AccountId.of(accountId),
             Instant.parse("2025-11-16T15:00:00Z"),
-            12L,
+            12L);
+    FundsReserved fundsReserved =
+        new FundsReserved(
+            metaReserved,
             ReservationId.of(UUID.fromString("09518c66-ff5e-4596-9049-74dfbdf6f6db")),
             Money.of(BigDecimal.valueOf(40.10), SupportedCurrency.GBP));
     UUID reservationCancelledEventId = UUID.randomUUID();
@@ -189,12 +205,15 @@ class EventStoreEntryToAccountEventMapperTest {
                 "occurredAt": "2025-11-16T15:00:00Z"
             }
             """));
-    ReservationCancelled reservationCancelled =
-        new ReservationCancelled(
+    AccountEventMeta metaReservationCancelled =
+        AccountEventMeta.of(
             EventId.of(reservationCancelledEventId),
             AccountId.of(accountId),
             Instant.parse("2025-11-16T15:00:00Z"),
-            13L,
+            13L);
+    ReservationCancelled reservationCancelled =
+        new ReservationCancelled(
+            metaReservationCancelled,
             ReservationId.of(UUID.fromString("09518c66-ff5e-4596-9049-74dfbdf6f6db")),
             Money.of(BigDecimal.valueOf(40.10), SupportedCurrency.GBP));
     return Stream.of(

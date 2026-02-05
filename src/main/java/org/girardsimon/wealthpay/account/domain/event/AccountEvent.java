@@ -12,11 +12,21 @@ public sealed interface AccountEvent
         ReservationCancelled,
         AccountClosed,
         ReservationCaptured {
-  EventId eventId();
+  AccountEventMeta meta();
 
-  AccountId accountId();
+  default EventId eventId() {
+    return meta().eventId();
+  }
 
-  Instant occurredAt();
+  default AccountId accountId() {
+    return meta().accountId();
+  }
 
-  long version();
+  default Instant occurredAt() {
+    return meta().occurredAt();
+  }
+
+  default long version() {
+    return meta().version();
+  }
 }

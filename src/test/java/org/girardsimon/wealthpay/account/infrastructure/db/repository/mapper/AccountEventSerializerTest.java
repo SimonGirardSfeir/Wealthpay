@@ -8,6 +8,7 @@ import java.util.UUID;
 import java.util.stream.Stream;
 import org.girardsimon.wealthpay.account.domain.event.AccountClosed;
 import org.girardsimon.wealthpay.account.domain.event.AccountEvent;
+import org.girardsimon.wealthpay.account.domain.event.AccountEventMeta;
 import org.girardsimon.wealthpay.account.domain.event.AccountOpened;
 import org.girardsimon.wealthpay.account.domain.event.FundsCredited;
 import org.girardsimon.wealthpay.account.domain.event.FundsDebited;
@@ -34,8 +35,9 @@ class AccountEventSerializerTest {
     SupportedCurrency usd = SupportedCurrency.USD;
     Money initialBalance = Money.of(BigDecimal.valueOf(10), usd);
     Instant occurredAt = Instant.parse("2025-11-16T15:00:00Z");
-    AccountOpened accountOpened =
-        new AccountOpened(EventId.newId(), AccountId.newId(), occurredAt, 1L, usd, initialBalance);
+    AccountEventMeta metaOpened =
+        AccountEventMeta.of(EventId.newId(), AccountId.newId(), occurredAt, 1L);
+    AccountOpened accountOpened = new AccountOpened(metaOpened, usd, initialBalance);
     JSONB payloadAccountOpened =
         JSONB.valueOf(
             """
@@ -47,14 +49,11 @@ class AccountEventSerializerTest {
             """);
     ReservationId reservationId =
         ReservationId.of(UUID.fromString("09518c66-ff5e-4596-9049-74dfbdf6f6db"));
+    AccountEventMeta metaCaptured =
+        AccountEventMeta.of(EventId.newId(), AccountId.newId(), occurredAt, 3L);
     ReservationCaptured reservationCaptured =
         new ReservationCaptured(
-            EventId.newId(),
-            AccountId.newId(),
-            occurredAt,
-            3L,
-            reservationId,
-            Money.of(BigDecimal.valueOf(40), SupportedCurrency.EUR));
+            metaCaptured, reservationId, Money.of(BigDecimal.valueOf(40), SupportedCurrency.EUR));
     JSONB payloadReservationCaptured =
         JSONB.valueOf(
             """
@@ -65,8 +64,9 @@ class AccountEventSerializerTest {
                 "occurredAt": "2025-11-16T15:00:00Z"
             }
             """);
-    AccountClosed accountClosed =
-        new AccountClosed(EventId.newId(), AccountId.newId(), occurredAt, 100L);
+    AccountEventMeta metaClosed =
+        AccountEventMeta.of(EventId.newId(), AccountId.newId(), occurredAt, 10L);
+    AccountClosed accountClosed = new AccountClosed(metaClosed);
     JSONB payloadAccountClosed =
         JSONB.valueOf(
             """
@@ -74,12 +74,11 @@ class AccountEventSerializerTest {
                 "occurredAt": "2025-11-16T15:00:00Z"
             }
             """);
+    AccountEventMeta metaCredited =
+        AccountEventMeta.of(EventId.newId(), AccountId.newId(), occurredAt, 2L);
     FundsCredited fundsCredited =
         new FundsCredited(
-            EventId.newId(),
-            AccountId.newId(),
-            occurredAt,
-            2L,
+            metaCredited,
             TransactionId.of(UUID.fromString("93c1fbc0-3d93-43f2-a127-b3c5d1c7722c")),
             Money.of(BigDecimal.valueOf(500L), SupportedCurrency.USD));
     JSONB payloadFundsCredited =
@@ -92,12 +91,11 @@ class AccountEventSerializerTest {
                 "occurredAt": "2025-11-16T15:00:00Z"
             }
             """);
+    AccountEventMeta metaDebited =
+        AccountEventMeta.of(EventId.newId(), AccountId.newId(), occurredAt, 2L);
     FundsDebited fundsDebited =
         new FundsDebited(
-            EventId.newId(),
-            AccountId.newId(),
-            occurredAt,
-            2L,
+            metaDebited,
             TransactionId.of(UUID.fromString("bdbe57ef-6930-4502-a916-e77d978e1f76")),
             Money.of(BigDecimal.valueOf(20L), SupportedCurrency.CHF));
     JSONB payloadFundsDebited =
@@ -110,12 +108,11 @@ class AccountEventSerializerTest {
                 "occurredAt": "2025-11-16T15:00:00Z"
             }
             """);
+    AccountEventMeta metaReserved =
+        AccountEventMeta.of(EventId.newId(), AccountId.newId(), occurredAt, 2L);
     FundsReserved fundsReserved =
         new FundsReserved(
-            EventId.newId(),
-            AccountId.newId(),
-            occurredAt,
-            2L,
+            metaReserved,
             reservationId,
             Money.of(BigDecimal.valueOf(40.10), SupportedCurrency.GBP));
     JSONB payloadFundsReserved =
@@ -128,12 +125,11 @@ class AccountEventSerializerTest {
                 "occurredAt": "2025-11-16T15:00:00Z"
             }
             """);
+    AccountEventMeta metaCancelled =
+        AccountEventMeta.of(EventId.newId(), AccountId.newId(), occurredAt, 2L);
     ReservationCancelled reservationCancelled =
         new ReservationCancelled(
-            EventId.newId(),
-            AccountId.newId(),
-            occurredAt,
-            2L,
+            metaCancelled,
             reservationId,
             Money.of(BigDecimal.valueOf(40.10), SupportedCurrency.GBP));
     JSONB payloadReservationCancelled =

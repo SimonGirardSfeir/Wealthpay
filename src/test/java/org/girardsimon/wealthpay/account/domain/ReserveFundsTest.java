@@ -12,6 +12,7 @@ import org.girardsimon.wealthpay.account.domain.command.OpenAccount;
 import org.girardsimon.wealthpay.account.domain.command.ReserveFunds;
 import org.girardsimon.wealthpay.account.domain.event.AccountClosed;
 import org.girardsimon.wealthpay.account.domain.event.AccountEvent;
+import org.girardsimon.wealthpay.account.domain.event.AccountEventMeta;
 import org.girardsimon.wealthpay.account.domain.event.AccountOpened;
 import org.girardsimon.wealthpay.account.domain.event.FundsDebited;
 import org.girardsimon.wealthpay.account.domain.event.FundsReserved;
@@ -79,8 +80,8 @@ class ReserveFundsTest {
     AccountId accountId = AccountId.newId();
     SupportedCurrency usd = SupportedCurrency.USD;
     Money initialBalance = Money.of(BigDecimal.valueOf(10L), usd);
-    AccountOpened accountOpened =
-        new AccountOpened(EventId.newId(), accountId, Instant.now(), 1L, usd, initialBalance);
+    AccountEventMeta meta = AccountEventMeta.of(EventId.newId(), accountId, Instant.now(), 1L);
+    AccountOpened accountOpened = new AccountOpened(meta, usd, initialBalance);
     Account account = Account.rehydrate(List.of(accountOpened));
     SupportedCurrency chf = SupportedCurrency.CHF;
     Money reservedAmount = Money.of(BigDecimal.valueOf(5L), chf);
@@ -99,8 +100,8 @@ class ReserveFundsTest {
     AccountId accountId = AccountId.newId();
     SupportedCurrency usd = SupportedCurrency.USD;
     Money initialBalance = Money.of(BigDecimal.valueOf(10L), usd);
-    AccountOpened accountOpened =
-        new AccountOpened(EventId.newId(), accountId, Instant.now(), 1L, usd, initialBalance);
+    AccountEventMeta meta = AccountEventMeta.of(EventId.newId(), accountId, Instant.now(), 1L);
+    AccountOpened accountOpened = new AccountOpened(meta, usd, initialBalance);
     Account account = Account.rehydrate(List.of(accountOpened));
     Money reservedAmount = Money.of(BigDecimal.valueOf(5L), usd);
     AccountId otherAccountId = AccountId.newId();
@@ -119,8 +120,8 @@ class ReserveFundsTest {
     AccountId accountId = AccountId.newId();
     SupportedCurrency usd = SupportedCurrency.USD;
     Money initialBalance = Money.of(BigDecimal.valueOf(10L), usd);
-    AccountOpened accountOpened =
-        new AccountOpened(EventId.newId(), accountId, Instant.now(), 1L, usd, initialBalance);
+    AccountEventMeta meta = AccountEventMeta.of(EventId.newId(), accountId, Instant.now(), 1L);
+    AccountOpened accountOpened = new AccountOpened(meta, usd, initialBalance);
     Account account = Account.rehydrate(List.of(accountOpened));
     Money reservedAmount = Money.of(BigDecimal.valueOf(-5L), usd);
     ReservationId reservationId = ReservationId.newId();
@@ -138,12 +139,12 @@ class ReserveFundsTest {
     AccountId accountId = AccountId.newId();
     SupportedCurrency usd = SupportedCurrency.USD;
     Money initialBalance = Money.of(BigDecimal.valueOf(10L), usd);
-    AccountOpened opened =
-        new AccountOpened(EventId.newId(), accountId, Instant.now(), 1L, usd, initialBalance);
-    FundsDebited debited =
-        new FundsDebited(
-            EventId.newId(), accountId, Instant.now(), 2L, TransactionId.newId(), initialBalance);
-    AccountClosed closed = new AccountClosed(EventId.newId(), accountId, Instant.now(), 3L);
+    AccountEventMeta meta1 = AccountEventMeta.of(EventId.newId(), accountId, Instant.now(), 1L);
+    AccountOpened opened = new AccountOpened(meta1, usd, initialBalance);
+    AccountEventMeta meta2 = AccountEventMeta.of(EventId.newId(), accountId, Instant.now(), 2L);
+    FundsDebited debited = new FundsDebited(meta2, TransactionId.newId(), initialBalance);
+    AccountClosed closed =
+        new AccountClosed(AccountEventMeta.of(EventId.newId(), accountId, Instant.now(), 3L));
     Account closedAccount = Account.rehydrate(List.of(opened, debited, closed));
     Money reservedAmount = Money.of(BigDecimal.valueOf(10L), usd);
     ReservationId reservationId = ReservationId.newId();
@@ -161,17 +162,12 @@ class ReserveFundsTest {
     AccountId accountId = AccountId.newId();
     SupportedCurrency usd = SupportedCurrency.USD;
     Money initialBalance = Money.of(BigDecimal.valueOf(100L), usd);
-    AccountOpened opened =
-        new AccountOpened(EventId.newId(), accountId, Instant.now(), 1L, usd, initialBalance);
+    AccountEventMeta meta1 = AccountEventMeta.of(EventId.newId(), accountId, Instant.now(), 1L);
+    AccountOpened opened = new AccountOpened(meta1, usd, initialBalance);
     Money firstReservedAmount = Money.of(BigDecimal.valueOf(60L), usd);
+    AccountEventMeta meta2 = AccountEventMeta.of(EventId.newId(), accountId, Instant.now(), 2L);
     FundsReserved fundsReserved =
-        new FundsReserved(
-            EventId.newId(),
-            accountId,
-            Instant.now(),
-            2L,
-            ReservationId.newId(),
-            firstReservedAmount);
+        new FundsReserved(meta2, ReservationId.newId(), firstReservedAmount);
     Account account = Account.rehydrate(List.of(opened, fundsReserved));
     Money reservedAmount =
         Money.of(BigDecimal.valueOf(50L), usd); // 50 > 100 - 60 = 40 available balance
@@ -190,13 +186,12 @@ class ReserveFundsTest {
     AccountId accountId = AccountId.newId();
     SupportedCurrency usd = SupportedCurrency.USD;
     Money initialBalance = Money.of(BigDecimal.valueOf(100L), usd);
-    AccountOpened opened =
-        new AccountOpened(EventId.newId(), accountId, Instant.now(), 1L, usd, initialBalance);
+    AccountEventMeta meta1 = AccountEventMeta.of(EventId.newId(), accountId, Instant.now(), 1L);
+    AccountOpened opened = new AccountOpened(meta1, usd, initialBalance);
     Money firstReservedAmount = Money.of(BigDecimal.valueOf(60L), usd);
     ReservationId reservationId = ReservationId.newId();
-    FundsReserved fundsReserved =
-        new FundsReserved(
-            EventId.newId(), accountId, Instant.now(), 2L, reservationId, firstReservedAmount);
+    AccountEventMeta meta2 = AccountEventMeta.of(EventId.newId(), accountId, Instant.now(), 2L);
+    FundsReserved fundsReserved = new FundsReserved(meta2, reservationId, firstReservedAmount);
     Account account = Account.rehydrate(List.of(opened, fundsReserved));
     Money newReservedAmount = Money.of(BigDecimal.valueOf(10L), usd);
     ReserveFunds reserveFunds = new ReserveFunds(accountId, reservationId, newReservedAmount);
@@ -213,13 +208,12 @@ class ReserveFundsTest {
     AccountId accountId = AccountId.newId();
     SupportedCurrency usd = SupportedCurrency.USD;
     Money initialBalance = Money.of(BigDecimal.valueOf(100L), usd);
-    AccountOpened opened =
-        new AccountOpened(EventId.newId(), accountId, Instant.now(), 1L, usd, initialBalance);
+    AccountEventMeta meta1 = AccountEventMeta.of(EventId.newId(), accountId, Instant.now(), 1L);
+    AccountOpened opened = new AccountOpened(meta1, usd, initialBalance);
     Money reservedAmount = Money.of(BigDecimal.valueOf(60L), usd);
     ReservationId reservationId = ReservationId.newId();
-    FundsReserved fundsReserved =
-        new FundsReserved(
-            EventId.newId(), accountId, Instant.now(), 2L, reservationId, reservedAmount);
+    AccountEventMeta meta2 = AccountEventMeta.of(EventId.newId(), accountId, Instant.now(), 2L);
+    FundsReserved fundsReserved = new FundsReserved(meta2, reservationId, reservedAmount);
     Account account = Account.rehydrate(List.of(opened, fundsReserved));
     ReserveFunds reserveFunds = new ReserveFunds(accountId, reservationId, reservedAmount);
 

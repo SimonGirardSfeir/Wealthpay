@@ -8,6 +8,7 @@ import java.util.UUID;
 import java.util.function.Function;
 import org.girardsimon.wealthpay.account.domain.event.AccountClosed;
 import org.girardsimon.wealthpay.account.domain.event.AccountEvent;
+import org.girardsimon.wealthpay.account.domain.event.AccountEventMeta;
 import org.girardsimon.wealthpay.account.domain.event.AccountOpened;
 import org.girardsimon.wealthpay.account.domain.event.FundsCredited;
 import org.girardsimon.wealthpay.account.domain.event.FundsDebited;
@@ -48,6 +49,14 @@ public class EventStoreEntryToAccountEventMapper implements Function<EventStore,
     return Money.of(amount, currency);
   }
 
+  private static AccountEventMeta getAccountEventMeta(EventStore eventStore, JsonNode root) {
+    return AccountEventMeta.of(
+        EventId.of(eventStore.getEventId()),
+        AccountId.of(eventStore.getAccountId()),
+        Instant.parse(getRequiredField(root, OCCURRED_AT).asString()),
+        eventStore.getVersion());
+  }
+
   @Override
   public AccountEvent apply(EventStore eventStore) {
     String eventType = eventStore.getEventType();
@@ -70,10 +79,7 @@ public class EventStoreEntryToAccountEventMapper implements Function<EventStore,
     String reservationId = getRequiredField(root, RESERVATION_ID).asString();
 
     return new ReservationCancelled(
-        EventId.of(eventStore.getEventId()),
-        AccountId.of(eventStore.getAccountId()),
-        Instant.parse(getRequiredField(root, OCCURRED_AT).asString()),
-        eventStore.getVersion(),
+        getAccountEventMeta(eventStore, root),
         ReservationId.of(UUID.fromString(reservationId)),
         extractMoney(root));
   }
@@ -84,10 +90,7 @@ public class EventStoreEntryToAccountEventMapper implements Function<EventStore,
     String reservationId = getRequiredField(root, RESERVATION_ID).asString();
 
     return new FundsReserved(
-        EventId.of(eventStore.getEventId()),
-        AccountId.of(eventStore.getAccountId()),
-        Instant.parse(getRequiredField(root, OCCURRED_AT).asString()),
-        eventStore.getVersion(),
+        getAccountEventMeta(eventStore, root),
         ReservationId.of(UUID.fromString(reservationId)),
         extractMoney(root));
   }
@@ -98,10 +101,7 @@ public class EventStoreEntryToAccountEventMapper implements Function<EventStore,
     String transactionId = root.get(TRANSACTION_ID).asString();
 
     return new FundsDebited(
-        EventId.of(eventStore.getEventId()),
-        AccountId.of(eventStore.getAccountId()),
-        Instant.parse(root.get(OCCURRED_AT).asString()),
-        eventStore.getVersion(),
+        getAccountEventMeta(eventStore, root),
         TransactionId.of(UUID.fromString(transactionId)),
         extractMoney(root));
   }
@@ -112,22 +112,14 @@ public class EventStoreEntryToAccountEventMapper implements Function<EventStore,
     String transactionId = getRequiredField(root, TRANSACTION_ID).asString();
 
     return new FundsCredited(
-        EventId.of(eventStore.getEventId()),
-        AccountId.of(eventStore.getAccountId()),
-        Instant.parse(getRequiredField(root, OCCURRED_AT).asString()),
-        eventStore.getVersion(),
+        getAccountEventMeta(eventStore, root),
         TransactionId.of(UUID.fromString(transactionId)),
         extractMoney(root));
   }
 
   private AccountClosed mapAccountClosed(EventStore eventStore) {
     JsonNode root = objectMapper.readTree(eventStore.getPayload().data());
-
-    return new AccountClosed(
-        EventId.of(eventStore.getEventId()),
-        AccountId.of(eventStore.getAccountId()),
-        Instant.parse(getRequiredField(root, OCCURRED_AT).asString()),
-        eventStore.getVersion());
+    return new AccountClosed(getAccountEventMeta(eventStore, root));
   }
 
   private ReservationCaptured mapReservationCaptured(EventStore eventStore) {
@@ -136,10 +128,7 @@ public class EventStoreEntryToAccountEventMapper implements Function<EventStore,
     String reservationId = getRequiredField(root, RESERVATION_ID).asString();
 
     return new ReservationCaptured(
-        EventId.of(eventStore.getEventId()),
-        AccountId.of(eventStore.getAccountId()),
-        Instant.parse(getRequiredField(root, OCCURRED_AT).asString()),
-        eventStore.getVersion(),
+        getAccountEventMeta(eventStore, root),
         ReservationId.of(UUID.fromString(reservationId)),
         extractMoney(root));
   }
@@ -152,11 +141,6 @@ public class EventStoreEntryToAccountEventMapper implements Function<EventStore,
     BigDecimal amount = getRequiredField(root, INITIAL_BALANCE).decimalValue();
 
     return new AccountOpened(
-        EventId.of(eventStore.getEventId()),
-        AccountId.of(eventStore.getAccountId()),
-        Instant.parse(getRequiredField(root, OCCURRED_AT).asString()),
-        eventStore.getVersion(),
-        currency,
-        Money.of(amount, currency));
+        getAccountEventMeta(eventStore, root), currency, Money.of(amount, currency));
   }
 }

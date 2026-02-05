@@ -12,6 +12,7 @@ import org.girardsimon.wealthpay.account.domain.command.DebitAccount;
 import org.girardsimon.wealthpay.account.domain.command.OpenAccount;
 import org.girardsimon.wealthpay.account.domain.event.AccountClosed;
 import org.girardsimon.wealthpay.account.domain.event.AccountEvent;
+import org.girardsimon.wealthpay.account.domain.event.AccountEventMeta;
 import org.girardsimon.wealthpay.account.domain.event.AccountOpened;
 import org.girardsimon.wealthpay.account.domain.event.FundsDebited;
 import org.girardsimon.wealthpay.account.domain.exception.AccountCurrencyMismatchException;
@@ -74,8 +75,8 @@ class AccountDebitTest {
     AccountId accountId = AccountId.newId();
     SupportedCurrency usd = SupportedCurrency.USD;
     Money initialBalance = Money.of(BigDecimal.valueOf(10L), usd);
-    AccountOpened accountOpened =
-        new AccountOpened(EventId.newId(), accountId, Instant.now(), 1L, usd, initialBalance);
+    AccountEventMeta meta = AccountEventMeta.of(EventId.newId(), accountId, Instant.now(), 1L);
+    AccountOpened accountOpened = new AccountOpened(meta, usd, initialBalance);
     Account account = Account.rehydrate(List.of(accountOpened));
     SupportedCurrency chf = SupportedCurrency.CHF;
     Money debitAmount = Money.of(BigDecimal.valueOf(5L), chf);
@@ -93,8 +94,8 @@ class AccountDebitTest {
     AccountId accountId = AccountId.newId();
     SupportedCurrency usd = SupportedCurrency.USD;
     Money initialBalance = Money.of(BigDecimal.valueOf(10L), usd);
-    AccountOpened accountOpened =
-        new AccountOpened(EventId.newId(), accountId, Instant.now(), 1L, usd, initialBalance);
+    AccountEventMeta meta = AccountEventMeta.of(EventId.newId(), accountId, Instant.now(), 1L);
+    AccountOpened accountOpened = new AccountOpened(meta, usd, initialBalance);
     Account account = Account.rehydrate(List.of(accountOpened));
     Money debitAmount = Money.of(BigDecimal.valueOf(5L), usd);
     AccountId otherAccountId = AccountId.newId();
@@ -113,8 +114,8 @@ class AccountDebitTest {
     AccountId accountId = AccountId.newId();
     SupportedCurrency usd = SupportedCurrency.USD;
     Money initialBalance = Money.of(BigDecimal.valueOf(10L), usd);
-    AccountOpened accountOpened =
-        new AccountOpened(EventId.newId(), accountId, Instant.now(), 1L, usd, initialBalance);
+    AccountEventMeta meta = AccountEventMeta.of(EventId.newId(), accountId, Instant.now(), 1L);
+    AccountOpened accountOpened = new AccountOpened(meta, usd, initialBalance);
     Account account = Account.rehydrate(List.of(accountOpened));
     Money debitAmount = Money.of(BigDecimal.valueOf(-5L), usd);
     DebitAccount debitAccount = new DebitAccount(TransactionId.newId(), accountId, debitAmount);
@@ -131,12 +132,12 @@ class AccountDebitTest {
     AccountId accountId = AccountId.newId();
     SupportedCurrency usd = SupportedCurrency.USD;
     Money initialBalance = Money.of(BigDecimal.valueOf(10L), usd);
-    AccountOpened opened =
-        new AccountOpened(EventId.newId(), accountId, Instant.now(), 1L, usd, initialBalance);
-    FundsDebited debited =
-        new FundsDebited(
-            EventId.newId(), accountId, Instant.now(), 2L, TransactionId.newId(), initialBalance);
-    AccountClosed closed = new AccountClosed(EventId.newId(), accountId, Instant.now(), 3L);
+    AccountEventMeta meta1 = AccountEventMeta.of(EventId.newId(), accountId, Instant.now(), 1L);
+    AccountOpened opened = new AccountOpened(meta1, usd, initialBalance);
+    AccountEventMeta meta2 = AccountEventMeta.of(EventId.newId(), accountId, Instant.now(), 2L);
+    FundsDebited debited = new FundsDebited(meta2, TransactionId.newId(), initialBalance);
+    AccountEventMeta meta3 = AccountEventMeta.of(EventId.newId(), accountId, Instant.now(), 3L);
+    AccountClosed closed = new AccountClosed(meta3);
     Account closedAccount = Account.rehydrate(List.of(opened, debited, closed));
     Money debitAmount = Money.of(BigDecimal.valueOf(5L), usd);
     DebitAccount debitAccount = new DebitAccount(TransactionId.newId(), accountId, debitAmount);
@@ -153,8 +154,8 @@ class AccountDebitTest {
     AccountId accountId = AccountId.newId();
     SupportedCurrency usd = SupportedCurrency.USD;
     Money initialBalance = Money.of(BigDecimal.valueOf(10L), usd);
-    AccountOpened accountOpened =
-        new AccountOpened(EventId.newId(), accountId, Instant.now(), 1L, usd, initialBalance);
+    AccountEventMeta meta = AccountEventMeta.of(EventId.newId(), accountId, Instant.now(), 1L);
+    AccountOpened accountOpened = new AccountOpened(meta, usd, initialBalance);
     Account account = Account.rehydrate(List.of(accountOpened));
     Money debitAmount = Money.of(BigDecimal.valueOf(15L), usd);
     DebitAccount debitAccount = new DebitAccount(TransactionId.newId(), accountId, debitAmount);

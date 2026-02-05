@@ -13,6 +13,7 @@ import org.girardsimon.wealthpay.account.domain.command.OpenAccount;
 import org.girardsimon.wealthpay.account.domain.command.ReserveFunds;
 import org.girardsimon.wealthpay.account.domain.event.AccountClosed;
 import org.girardsimon.wealthpay.account.domain.event.AccountEvent;
+import org.girardsimon.wealthpay.account.domain.event.AccountEventMeta;
 import org.girardsimon.wealthpay.account.domain.event.AccountOpened;
 import org.girardsimon.wealthpay.account.domain.event.FundsCredited;
 import org.girardsimon.wealthpay.account.domain.event.FundsDebited;
@@ -57,9 +58,9 @@ public class Account {
       throw new AccountCurrencyMismatchException(
           initialBalance.currency().name(), accountCurrency.name());
     }
-    AccountOpened accountOpened =
-        new AccountOpened(
-            eventIdGenerator.newId(), accountId, occurredAt, 1L, accountCurrency, initialBalance);
+    AccountEventMeta meta =
+        AccountEventMeta.of(eventIdGenerator.newId(), accountId, occurredAt, 1L);
+    AccountOpened accountOpened = new AccountOpened(meta, accountCurrency, initialBalance);
     return List.of(accountOpened);
   }
 
@@ -89,14 +90,11 @@ public class Account {
     checkCurrencyConsistency(creditAccount.amount().currency());
     checkStrictlyPositiveAmount(creditAccount.amount());
     ensureActive();
+    AccountEventMeta meta =
+        AccountEventMeta.of(
+            eventIdGenerator.newId(), creditAccount.accountId(), occurredAt, this.version + 1);
     FundsCredited fundsCredited =
-        new FundsCredited(
-            eventIdGenerator.newId(),
-            creditAccount.accountId(),
-            occurredAt,
-            this.version + 1,
-            creditAccount.transactionId(),
-            creditAccount.amount());
+        new FundsCredited(meta, creditAccount.transactionId(), creditAccount.amount());
     apply(fundsCredited);
     return List.of(fundsCredited);
   }
@@ -110,14 +108,11 @@ public class Account {
     if (debitAccount.amount().isGreaterThan(getAvailableBalance())) {
       throw new InsufficientFundsException();
     }
+    AccountEventMeta meta =
+        AccountEventMeta.of(
+            eventIdGenerator.newId(), debitAccount.accountId(), occurredAt, this.version + 1);
     FundsDebited fundsDebited =
-        new FundsDebited(
-            eventIdGenerator.newId(),
-            debitAccount.accountId(),
-            occurredAt,
-            this.version + 1,
-            debitAccount.transactionId(),
-            debitAccount.amount());
+        new FundsDebited(meta, debitAccount.transactionId(), debitAccount.amount());
     apply(fundsDebited);
     return List.of(fundsDebited);
   }
@@ -140,14 +135,11 @@ public class Account {
     if (reserveFunds.money().isGreaterThan(getAvailableBalance())) {
       throw new InsufficientFundsException();
     }
+    AccountEventMeta meta =
+        AccountEventMeta.of(
+            eventIdGenerator.newId(), reserveFunds.accountId(), occurredAt, this.version + 1);
     FundsReserved fundsReserved =
-        new FundsReserved(
-            eventIdGenerator.newId(),
-            reserveFunds.accountId(),
-            occurredAt,
-            this.version + 1,
-            reserveFunds.reservationId(),
-            reserveFunds.money());
+        new FundsReserved(meta, reserveFunds.reservationId(), reserveFunds.money());
     apply(fundsReserved);
     return List.of(fundsReserved);
   }
@@ -159,12 +151,12 @@ public class Account {
     if (!this.reservations.containsKey(cancelReservation.reservationId())) {
       return List.of();
     }
+    AccountEventMeta meta =
+        AccountEventMeta.of(
+            eventIdGenerator.newId(), cancelReservation.accountId(), occurredAt, this.version + 1);
     ReservationCancelled reservationCancelled =
         new ReservationCancelled(
-            eventIdGenerator.newId(),
-            cancelReservation.accountId(),
-            occurredAt,
-            this.version + 1,
+            meta,
             cancelReservation.reservationId(),
             this.reservations.get(cancelReservation.reservationId()));
     apply(reservationCancelled);
@@ -178,9 +170,10 @@ public class Account {
     if (!this.balance.isAmountZero() || !this.reservations.isEmpty()) {
       throw new AccountNotEmptyException();
     }
-    AccountClosed accountClosed =
-        new AccountClosed(
+    AccountEventMeta meta =
+        AccountEventMeta.of(
             eventIdGenerator.newId(), closeAccount.accountId(), occurredAt, this.version + 1);
+    AccountClosed accountClosed = new AccountClosed(meta);
     apply(accountClosed);
     return List.of(accountClosed);
   }
@@ -195,14 +188,11 @@ public class Account {
     if (money == null) {
       return List.of();
     }
+    AccountEventMeta meta =
+        AccountEventMeta.of(
+            eventIdGenerator.newId(), captureReservation.accountId(), occurredAt, this.version + 1);
     ReservationCaptured reservationCaptured =
-        new ReservationCaptured(
-            eventIdGenerator.newId(),
-            captureReservation.accountId(),
-            occurredAt,
-            this.version + 1,
-            captureReservation.reservationId(),
-            money);
+        new ReservationCaptured(meta, captureReservation.reservationId(), money);
     apply(reservationCaptured);
     return List.of(reservationCaptured);
   }

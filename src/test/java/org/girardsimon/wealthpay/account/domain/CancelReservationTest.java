@@ -11,6 +11,7 @@ import java.util.stream.Stream;
 import org.girardsimon.wealthpay.account.domain.command.CancelReservation;
 import org.girardsimon.wealthpay.account.domain.event.AccountClosed;
 import org.girardsimon.wealthpay.account.domain.event.AccountEvent;
+import org.girardsimon.wealthpay.account.domain.event.AccountEventMeta;
 import org.girardsimon.wealthpay.account.domain.event.AccountOpened;
 import org.girardsimon.wealthpay.account.domain.event.FundsReserved;
 import org.girardsimon.wealthpay.account.domain.event.ReservationCancelled;
@@ -37,13 +38,12 @@ class CancelReservationTest {
     AccountId accountId = AccountId.newId();
     SupportedCurrency usd = SupportedCurrency.USD;
     Money initialBalance = Money.of(BigDecimal.valueOf(100L), usd);
-    AccountOpened opened =
-        new AccountOpened(EventId.newId(), accountId, Instant.now(), 1L, usd, initialBalance);
+    AccountEventMeta meta1 = AccountEventMeta.of(EventId.newId(), accountId, Instant.now(), 1L);
+    AccountOpened opened = new AccountOpened(meta1, usd, initialBalance);
     Money firstReservedAmount = Money.of(BigDecimal.valueOf(60L), usd);
     ReservationId reservationId = ReservationId.newId();
-    FundsReserved fundsReserved =
-        new FundsReserved(
-            EventId.newId(), accountId, Instant.now(), 2L, reservationId, firstReservedAmount);
+    AccountEventMeta meta2 = AccountEventMeta.of(EventId.newId(), accountId, Instant.now(), 2L);
+    FundsReserved fundsReserved = new FundsReserved(meta2, reservationId, firstReservedAmount);
     List<AccountEvent> initEvents = List.of(opened, fundsReserved);
     Account account = Account.rehydrate(initEvents);
     CancelReservation cancelReservation = new CancelReservation(accountId, reservationId);
@@ -73,13 +73,12 @@ class CancelReservationTest {
     AccountId accountId = AccountId.newId();
     SupportedCurrency usd = SupportedCurrency.USD;
     Money initialBalance = Money.of(BigDecimal.valueOf(100L), usd);
-    AccountOpened opened =
-        new AccountOpened(EventId.newId(), accountId, Instant.now(), 1L, usd, initialBalance);
+    AccountEventMeta meta1 = AccountEventMeta.of(EventId.newId(), accountId, Instant.now(), 1L);
+    AccountOpened opened = new AccountOpened(meta1, usd, initialBalance);
     Money firstReservedAmount = Money.of(BigDecimal.valueOf(60L), usd);
     ReservationId reservationId = ReservationId.newId();
-    FundsReserved fundsReserved =
-        new FundsReserved(
-            EventId.newId(), accountId, Instant.now(), 2L, reservationId, firstReservedAmount);
+    AccountEventMeta meta2 = AccountEventMeta.of(EventId.newId(), accountId, Instant.now(), 2L);
+    FundsReserved fundsReserved = new FundsReserved(meta2, reservationId, firstReservedAmount);
     List<AccountEvent> initEvents = List.of(opened, fundsReserved);
     Account account = Account.rehydrate(initEvents);
     CancelReservation cancelReservation = new CancelReservation(accountId, ReservationId.newId());
@@ -99,13 +98,12 @@ class CancelReservationTest {
     AccountId accountId = AccountId.newId();
     SupportedCurrency usd = SupportedCurrency.USD;
     Money initialBalance = Money.of(BigDecimal.valueOf(100L), usd);
-    AccountOpened opened =
-        new AccountOpened(EventId.newId(), accountId, Instant.now(), 1L, usd, initialBalance);
+    AccountEventMeta meta1 = AccountEventMeta.of(EventId.newId(), accountId, Instant.now(), 1L);
+    AccountOpened opened = new AccountOpened(meta1, usd, initialBalance);
     Money firstReservedAmount = Money.of(BigDecimal.valueOf(60L), usd);
     ReservationId reservationId = ReservationId.newId();
-    FundsReserved fundsReserved =
-        new FundsReserved(
-            EventId.newId(), accountId, Instant.now(), 2L, reservationId, firstReservedAmount);
+    AccountEventMeta meta2 = AccountEventMeta.of(EventId.newId(), accountId, Instant.now(), 2L);
+    FundsReserved fundsReserved = new FundsReserved(meta2, reservationId, firstReservedAmount);
     List<AccountEvent> initEvents = List.of(opened, fundsReserved);
     Account account = Account.rehydrate(initEvents);
     CancelReservation cancelReservation = new CancelReservation(AccountId.newId(), reservationId);
@@ -122,14 +120,14 @@ class CancelReservationTest {
     AccountId accountId = AccountId.newId();
     SupportedCurrency usd = SupportedCurrency.USD;
     Money initialBalance = Money.of(BigDecimal.valueOf(10L), usd);
-    AccountOpened opened =
-        new AccountOpened(EventId.newId(), accountId, Instant.now(), 1L, usd, initialBalance);
+    AccountEventMeta meta1 = AccountEventMeta.of(EventId.newId(), accountId, Instant.now(), 1L);
+    AccountOpened opened = new AccountOpened(meta1, usd, initialBalance);
     ReservationId reservationId = ReservationId.newId();
     Money reservedAmount = Money.of(BigDecimal.valueOf(10L), usd);
-    FundsReserved fundsReserved =
-        new FundsReserved(
-            EventId.newId(), accountId, Instant.now(), 2L, reservationId, reservedAmount);
-    AccountClosed closed = new AccountClosed(EventId.newId(), accountId, Instant.now(), 3L);
+    AccountEventMeta meta2 = AccountEventMeta.of(EventId.newId(), accountId, Instant.now(), 2L);
+    FundsReserved fundsReserved = new FundsReserved(meta2, reservationId, reservedAmount);
+    AccountEventMeta meta3 = AccountEventMeta.of(EventId.newId(), accountId, Instant.now(), 3L);
+    AccountClosed closed = new AccountClosed(meta3);
     Account closedAccount = Account.rehydrate(List.of(opened, fundsReserved, closed));
     CancelReservation cancelReservation = new CancelReservation(accountId, reservationId);
 
